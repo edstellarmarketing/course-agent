@@ -1,0 +1,56 @@
+[project]
+name = "engine"
+version = "0.1.0"
+description = "Nightly Python agent that surfaces enterprise-grade corporate-training candidates for Edstellar reviewers."
+readme = "README.md"
+authors = [
+    { name = "Edstellar Marketing", email = "vijay@edstellar.com" },
+]
+requires-python = ">=3.13"
+dependencies = []
+
+[project.scripts]
+engine = "engine:main"
+
+[build-system]
+requires = ["uv_build>=0.9.21,<0.10.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "ruff>=0.14",
+    "mypy>=1.18",
+    "pytest>=8.4",
+    "pytest-asyncio>=0.25",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "UP",  # pyupgrade
+    "N",   # pep8-naming
+    "S",   # bandit security
+    "SIM", # simplify
+    "RUF", # ruff-specific
+]
+ignore = ["S101"]  # allow asserts in tests
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S"]
+
+[tool.mypy]
+python_version = "3.13"
+strict = true
+warn_unreachable = true
+warn_return_any = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"

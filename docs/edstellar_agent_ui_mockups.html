@@ -1,0 +1,2665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Edstellar Course Discovery Agent — UI Mockups</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --navy:        #1A3C6E;
+  --navy-deep:   #0f2447;
+  --navy-mid:    #234e8c;
+  --navy-soft:   #edf2fb;
+  --orange:      #F47920;
+  --orange-light:#ff9340;
+  --orange-pale: #fff3e8;
+  --off-white:   #f7f8fc;
+  --white:       #ffffff;
+  --gray-50:     #f2f4f8;
+  --gray-100:    #e4e8f0;
+  --gray-200:    #c8d0e0;
+  --gray-300:    #aab4c8;
+  --gray-400:    #8896b0;
+  --gray-500:    #6b7a96;
+  --gray-600:    #4a5568;
+  --gray-700:    #2d3748;
+  --gray-800:    #1a202c;
+  --green:       #16a34a;
+  --green-soft:  #dcfce7;
+  --red:         #dc2626;
+  --red-soft:    #fee2e2;
+  --amber:       #d97706;
+  --amber-soft:  #fef3c7;
+  --radius:      10px;
+  --radius-sm:   6px;
+  --radius-lg:   16px;
+  --shadow-sm:   0 1px 3px rgba(15,36,71,0.08);
+  --shadow:      0 4px 24px rgba(15,36,71,0.08);
+  --shadow-lg:   0 16px 48px rgba(15,36,71,0.12);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--off-white);
+  color: var(--gray-800);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── DOCUMENT HEADER ── */
+.doc-header {
+  background: linear-gradient(135deg, var(--navy-deep) 0%, var(--navy) 55%, var(--navy-mid) 100%);
+  padding: 80px 48px 64px;
+  color: white;
+  position: relative;
+  overflow: hidden;
+}
+.doc-header::before {
+  content: '';
+  position: absolute;
+  top: -100px; right: -100px;
+  width: 480px; height: 480px;
+  background: radial-gradient(circle, rgba(244,121,32,0.18) 0%, transparent 70%);
+  border-radius: 50%;
+}
+.doc-header-inner {
+  max-width: 1280px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 1;
+}
+.doc-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  background: rgba(244,121,32,0.18);
+  border: 1px solid rgba(244,121,32,0.4);
+  color: var(--orange-light);
+  font-family: 'Syne', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  border-radius: 100px;
+  margin-bottom: 24px;
+}
+.doc-tag::before {
+  content: '';
+  width: 6px; height: 6px;
+  background: var(--orange);
+  border-radius: 50%;
+  display: inline-block;
+}
+.doc-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 56px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  margin-bottom: 16px;
+}
+.doc-title em {
+  color: var(--orange-light);
+  font-style: normal;
+}
+.doc-sub {
+  font-size: 18px;
+  color: rgba(255,255,255,0.75);
+  max-width: 720px;
+  line-height: 1.6;
+}
+.doc-meta {
+  display: flex;
+  gap: 40px;
+  margin-top: 40px;
+  padding-top: 32px;
+  border-top: 1px solid rgba(255,255,255,0.1);
+}
+.doc-meta-item .label {
+  font-family: 'Syne', sans-serif;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.5);
+  margin-bottom: 6px;
+}
+.doc-meta-item .value {
+  font-family: 'Syne', sans-serif;
+  font-size: 20px;
+  font-weight: 600;
+  color: white;
+}
+
+/* ── DESIGN LANGUAGE STRIP ── */
+.design-strip {
+  background: white;
+  border-bottom: 1px solid var(--gray-100);
+  padding: 32px 48px;
+}
+.design-strip-inner {
+  max-width: 1280px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 48px;
+  align-items: center;
+}
+.dl-label {
+  font-family: 'Syne', sans-serif;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--gray-500);
+}
+.dl-swatches {
+  display: flex;
+  gap: 12px;
+}
+.dl-swatch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--gray-600);
+  font-family: 'JetBrains Mono', monospace;
+}
+.dl-swatch-chip {
+  width: 18px; height: 18px;
+  border-radius: 4px;
+  border: 1px solid rgba(0,0,0,0.06);
+}
+.dl-fonts {
+  display: flex;
+  gap: 20px;
+  font-size: 12px;
+}
+.dl-fonts span:nth-child(1) {
+  font-family: 'Syne', sans-serif;
+  font-weight: 600;
+}
+
+/* ── MAIN CONTENT ── */
+.main {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 64px 48px;
+}
+
+/* ── SCREEN SECTION ── */
+.screen {
+  margin-bottom: 96px;
+}
+.screen-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.screen-num {
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  color: var(--orange);
+  text-transform: uppercase;
+}
+.screen-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--navy);
+  letter-spacing: -0.01em;
+}
+.screen-route {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  color: var(--gray-500);
+  background: var(--gray-50);
+  padding: 4px 10px;
+  border-radius: 6px;
+  margin-left: auto;
+}
+.screen-note {
+  color: var(--gray-600);
+  font-size: 15px;
+  max-width: 800px;
+  margin-bottom: 24px;
+  line-height: 1.65;
+}
+
+/* Browser chrome wrapper */
+.browser {
+  background: white;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  border: 1px solid var(--gray-100);
+}
+.browser-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--gray-50);
+  border-bottom: 1px solid var(--gray-100);
+}
+.browser-dots {
+  display: flex;
+  gap: 6px;
+}
+.browser-dot {
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  background: var(--gray-200);
+}
+.browser-dot:nth-child(1) { background: #ff5f57; }
+.browser-dot:nth-child(2) { background: #ffbd2e; }
+.browser-dot:nth-child(3) { background: #28ca42; }
+.browser-url {
+  flex: 1;
+  padding: 6px 12px;
+  background: white;
+  border: 1px solid var(--gray-100);
+  border-radius: 6px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--gray-600);
+}
+.browser-url .domain { color: var(--gray-400); }
+
+/* ── APP NAV ── */
+.app-nav {
+  display: flex;
+  align-items: center;
+  padding: 16px 32px;
+  background: white;
+  border-bottom: 1px solid var(--gray-100);
+}
+.app-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  color: var(--navy);
+  font-size: 16px;
+  letter-spacing: -0.01em;
+}
+.app-logo-mark {
+  width: 28px; height: 28px;
+  background: var(--navy);
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--orange);
+  font-weight: 800;
+  font-family: 'Syne', sans-serif;
+  font-size: 13px;
+}
+.app-logo-mark::before {
+  content: '✦';
+  font-size: 14px;
+}
+.app-nav-links {
+  display: flex;
+  gap: 4px;
+  margin-left: 48px;
+}
+.app-nav-link {
+  padding: 8px 14px;
+  font-size: 14px;
+  color: var(--gray-600);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.app-nav-link.active {
+  background: var(--navy-soft);
+  color: var(--navy);
+  font-weight: 600;
+}
+.app-nav-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.app-nav-search {
+  position: relative;
+}
+.app-nav-search input {
+  width: 240px;
+  padding: 8px 12px 8px 36px;
+  border: 1px solid var(--gray-100);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-family: inherit;
+  background: var(--gray-50);
+}
+.app-nav-search::before {
+  content: '⌕';
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--gray-400);
+}
+.app-nav-avatar {
+  width: 32px; height: 32px;
+  background: linear-gradient(135deg, var(--navy), var(--navy-mid));
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 600;
+  font-size: 12px;
+  font-family: 'Syne', sans-serif;
+}
+
+/* ── LOGIN ── */
+.login-bg {
+  min-height: 520px;
+  background:
+    radial-gradient(ellipse at top right, rgba(244,121,32,0.08) 0%, transparent 50%),
+    radial-gradient(ellipse at bottom left, rgba(26,60,110,0.06) 0%, transparent 50%),
+    var(--off-white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px;
+}
+.login-card {
+  width: 100%;
+  max-width: 400px;
+  background: white;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  padding: 40px;
+  border: 1px solid var(--gray-100);
+}
+.login-brand {
+  text-align: center;
+  margin-bottom: 32px;
+}
+.login-mark {
+  width: 56px; height: 56px;
+  margin: 0 auto 16px;
+  background: var(--navy);
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--orange);
+  font-size: 24px;
+}
+.login-mark::before { content: '✦'; }
+.login-title {
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  font-size: 22px;
+  color: var(--navy);
+  margin-bottom: 6px;
+  letter-spacing: -0.01em;
+}
+.login-sub {
+  font-size: 13px;
+  color: var(--gray-500);
+}
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.login-input {
+  padding: 12px 14px;
+  border: 1px solid var(--gray-100);
+  border-radius: var(--radius);
+  font-size: 14px;
+  font-family: inherit;
+  background: var(--gray-50);
+}
+.login-input::placeholder { color: var(--gray-400); }
+.btn-primary {
+  padding: 12px 16px;
+  background: var(--navy);
+  color: white;
+  border: none;
+  border-radius: var(--radius);
+  font-family: 'Syne', sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  letter-spacing: 0.01em;
+}
+.btn-google {
+  padding: 12px 16px;
+  background: white;
+  color: var(--gray-700);
+  border: 1px solid var(--gray-100);
+  border-radius: var(--radius);
+  font-weight: 500;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+.login-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 8px 0;
+  font-size: 11px;
+  color: var(--gray-400);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+.login-divider::before,
+.login-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--gray-100);
+}
+
+/* ── DASHBOARD ── */
+.dash {
+  background: var(--off-white);
+  padding: 32px;
+}
+.dash-greeting {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.dash-h1 {
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  font-size: 28px;
+  color: var(--navy);
+  letter-spacing: -0.015em;
+}
+.dash-h1 .greeting-mute { color: var(--gray-400); font-weight: 400; }
+.dash-date {
+  font-size: 13px;
+  color: var(--gray-500);
+  font-family: 'JetBrains Mono', monospace;
+}
+.dash-sub {
+  color: var(--gray-600);
+  font-size: 14px;
+  margin-bottom: 24px;
+}
+.dash-kpis {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.kpi {
+  background: white;
+  border-radius: var(--radius);
+  padding: 20px 22px;
+  border: 1px solid var(--gray-100);
+  position: relative;
+  overflow: hidden;
+}
+.kpi.featured {
+  background: linear-gradient(135deg, var(--navy-deep) 0%, var(--navy) 100%);
+  color: white;
+  border: none;
+}
+.kpi.featured::before {
+  content: '';
+  position: absolute;
+  top: -40px; right: -40px;
+  width: 180px; height: 180px;
+  background: radial-gradient(circle, rgba(244,121,32,0.25) 0%, transparent 70%);
+}
+.kpi-label {
+  font-family: 'Syne', sans-serif;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--gray-500);
+  margin-bottom: 10px;
+  position: relative;
+}
+.kpi.featured .kpi-label { color: rgba(255,255,255,0.55); }
+.kpi-value {
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  font-size: 36px;
+  color: var(--navy);
+  line-height: 1;
+  position: relative;
+}
+.kpi.featured .kpi-value { color: white; font-size: 48px; }
+.kpi-meta {
+  font-size: 12px;
+  color: var(--gray-500);
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  position: relative;
+}
+.kpi.featured .kpi-meta { color: rgba(255,255,255,0.7); }
+.trend-up { color: var(--green); font-weight: 600; }
+.trend-down { color: var(--red); font-weight: 600; }
+.kpi-cta {
+  margin-top: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: var(--orange);
+  color: white;
+  border-radius: 6px;
+  font-family: 'Syne', sans-serif;
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  position: relative;
+}
+
+.dash-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 16px;
+}
+.dash-card {
+  background: white;
+  border-radius: var(--radius);
+  border: 1px solid var(--gray-100);
+  padding: 22px;
+}
+.dash-card-h {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 18px;
+}
+.dash-card-title {
+  font-family: 'Syne', sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--navy);
+}
+.dash-card-link {
+  font-size: 12px;
+  color: var(--orange);
+  font-weight: 600;
+  font-family: 'Syne', sans-serif;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* Tiny bar chart */
+.minibars {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  height: 140px;
+  margin-bottom: 12px;
+}
+.minibar {
+  flex: 1;
+  background: linear-gradient(180deg, var(--navy-mid), var(--navy));
+  border-radius: 6px 6px 0 0;
+  position: relative;
+  min-height: 12px;
+}
+.minibar:nth-child(1) { height: 32%; }
+.minibar:nth-child(2) { height: 42%; }
+.minibar:nth-child(3) { height: 28%; }
+.minibar:nth-child(4) { height: 55%; }
+.minibar:nth-child(5) { height: 48%; }
+.minibar:nth-child(6) { height: 62%; }
+.minibar:nth-child(7) { height: 68%; background: linear-gradient(180deg, var(--orange-light), var(--orange)); }
+.minibar-labels {
+  display: flex;
+  gap: 8px;
+  font-size: 10px;
+  color: var(--gray-400);
+  font-family: 'JetBrains Mono', monospace;
+}
+.minibar-labels span { flex: 1; text-align: center; }
+
+/* Activity feed */
+.activity {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.activity-row {
+  display: grid;
+  grid-template-columns: 36px 1fr auto;
+  gap: 12px;
+  align-items: center;
+}
+.activity-dot {
+  width: 32px; height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+}
+.activity-dot.approve { background: var(--green-soft); color: var(--green); }
+.activity-dot.reject  { background: var(--red-soft);   color: var(--red); }
+.activity-dot.run     { background: var(--orange-pale); color: var(--orange); }
+.activity-text {
+  font-size: 13px;
+  color: var(--gray-700);
+  line-height: 1.4;
+}
+.activity-text strong { color: var(--navy); }
+.activity-time {
+  font-size: 11px;
+  color: var(--gray-400);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Top rejection reasons inline */
+.reasons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.reasons-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items: center;
+}
+.reason-name {
+  font-size: 13px;
+  color: var(--gray-700);
+}
+.reason-bar {
+  height: 6px;
+  background: var(--gray-50);
+  border-radius: 3px;
+  overflow: hidden;
+  grid-column: 1 / -1;
+  margin-top: 4px;
+}
+.reason-fill {
+  height: 100%;
+  background: var(--orange);
+  border-radius: 3px;
+}
+.reason-count {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--gray-500);
+}
+
+/* ── SUGGESTIONS QUEUE ── */
+.queue {
+  background: var(--off-white);
+  padding: 32px;
+}
+.queue-h {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  gap: 24px;
+}
+.queue-title {
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  font-size: 26px;
+  color: var(--navy);
+  letter-spacing: -0.015em;
+}
+.queue-sub {
+  color: var(--gray-500);
+  font-size: 14px;
+  margin-top: 4px;
+}
+.queue-progress {
+  background: white;
+  padding: 14px 20px;
+  border-radius: var(--radius);
+  border: 1px solid var(--gray-100);
+  min-width: 260px;
+}
+.queue-progress-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+.queue-progress-row .label {
+  color: var(--gray-500);
+  font-family: 'Syne', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 10px;
+}
+.queue-progress-bar {
+  height: 8px;
+  background: var(--gray-100);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.queue-progress-fill {
+  width: 35%;
+  height: 100%;
+  background: linear-gradient(90deg, var(--orange) 0%, var(--orange-light) 100%);
+  border-radius: 4px;
+}
+.queue-filters {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+.filter-chip {
+  padding: 6px 12px;
+  border: 1px solid var(--gray-100);
+  background: white;
+  border-radius: 100px;
+  font-size: 12px;
+  color: var(--gray-700);
+  cursor: pointer;
+}
+.filter-chip.active {
+  background: var(--navy);
+  color: white;
+  border-color: var(--navy);
+}
+
+/* Suggestion card */
+.sug-card {
+  background: white;
+  border-radius: var(--radius);
+  border: 1px solid var(--gray-100);
+  padding: 24px;
+  margin-bottom: 16px;
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 28px;
+}
+.sug-card.focused {
+  border-color: var(--orange);
+  border-width: 2px;
+  box-shadow: 0 0 0 4px rgba(244,121,32,0.12);
+}
+.sug-main {}
+.sug-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+.sug-cat {
+  font-family: 'Syne', sans-serif;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--navy);
+  background: var(--navy-soft);
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+.sug-price {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--orange);
+  background: var(--orange-pale);
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+.sug-format {
+  font-size: 11px;
+  color: var(--green);
+  background: var(--green-soft);
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.sug-title {
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  font-size: 20px;
+  color: var(--navy);
+  line-height: 1.25;
+  margin-bottom: 10px;
+  letter-spacing: -0.005em;
+}
+.sug-rationale {
+  font-size: 14px;
+  color: var(--gray-600);
+  line-height: 1.6;
+  margin-bottom: 16px;
+}
+.sug-metas {
+  display: flex;
+  gap: 24px;
+  font-size: 12px;
+  color: var(--gray-500);
+  margin-bottom: 18px;
+  padding: 12px 0;
+  border-top: 1px solid var(--gray-50);
+  border-bottom: 1px solid var(--gray-50);
+}
+.sug-meta-label {
+  font-family: 'Syne', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 9px;
+  color: var(--gray-400);
+  display: block;
+  margin-bottom: 2px;
+}
+.sug-meta-value {
+  color: var(--gray-700);
+  font-weight: 500;
+}
+.sug-refs-label {
+  font-family: 'Syne', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 10px;
+  color: var(--gray-400);
+  margin-bottom: 8px;
+}
+.sug-refs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+.sug-ref {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: var(--gray-50);
+  border: 1px solid var(--gray-100);
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--gray-700);
+  text-decoration: none;
+}
+.sug-ref::before {
+  content: '↗';
+  color: var(--gray-400);
+  font-size: 11px;
+}
+.sug-actions {
+  display: flex;
+  gap: 8px;
+}
+.btn-approve {
+  flex: 1;
+  padding: 10px;
+  background: var(--green);
+  color: white;
+  border: none;
+  border-radius: var(--radius);
+  font-family: 'Syne', sans-serif;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  letter-spacing: 0.02em;
+}
+.btn-reject {
+  flex: 1;
+  padding: 10px;
+  background: white;
+  color: var(--red);
+  border: 1px solid var(--red-soft);
+  border-radius: var(--radius);
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  font-family: 'Syne', sans-serif;
+  letter-spacing: 0.02em;
+}
+.btn-revise {
+  padding: 10px 14px;
+  background: white;
+  color: var(--amber);
+  border: 1px solid var(--amber-soft);
+  border-radius: var(--radius);
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  font-family: 'Syne', sans-serif;
+}
+
+/* Side panel — closest existing course */
+.sug-side {
+  background: var(--gray-50);
+  border-radius: var(--radius);
+  padding: 18px;
+  border: 1px solid var(--gray-100);
+}
+.sug-side-h {
+  font-family: 'Syne', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 10px;
+  color: var(--gray-500);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sug-side-h::before {
+  content: '◊';
+  color: var(--orange);
+}
+.sug-side-course {
+  font-family: 'Syne', sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--navy);
+  line-height: 1.35;
+  margin-bottom: 6px;
+}
+.sug-side-link {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--gray-500);
+  margin-bottom: 14px;
+  word-break: break-all;
+}
+.sug-side-sim {
+  background: white;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid var(--gray-100);
+}
+.sug-side-sim-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.sug-side-sim-label {
+  font-size: 11px;
+  color: var(--gray-500);
+}
+.sug-side-sim-val {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--green);
+}
+.sug-side-diff {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--gray-100);
+  font-size: 12px;
+  color: var(--gray-600);
+  line-height: 1.5;
+}
+.sug-side-diff strong {
+  color: var(--navy);
+  font-weight: 600;
+}
+
+/* ── REJECT MODAL ── */
+.modal-frame {
+  background: rgba(15, 36, 71, 0.6);
+  padding: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 540px;
+  position: relative;
+}
+.modal-frame::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+.modal {
+  background: white;
+  border-radius: var(--radius-lg);
+  width: 100%;
+  max-width: 540px;
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  position: relative;
+}
+.modal-h {
+  padding: 24px 28px 0;
+}
+.modal-eyebrow {
+  font-family: 'Syne', sans-serif;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--red);
+  margin-bottom: 6px;
+}
+.modal-title {
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  font-size: 22px;
+  color: var(--navy);
+  letter-spacing: -0.01em;
+  margin-bottom: 4px;
+}
+.modal-sub {
+  font-size: 13px;
+  color: var(--gray-500);
+  margin-bottom: 8px;
+}
+.modal-context {
+  margin: 16px 0;
+  padding: 12px 14px;
+  background: var(--gray-50);
+  border-left: 3px solid var(--orange);
+  border-radius: 0 6px 6px 0;
+  font-size: 13px;
+  color: var(--gray-700);
+}
+.modal-body {
+  padding: 0 28px 24px;
+}
+.modal-section {
+  margin-top: 20px;
+}
+.modal-section-label {
+  font-family: 'Syne', sans-serif;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--gray-500);
+  margin-bottom: 10px;
+  display: block;
+}
+.tag-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.tag {
+  padding: 7px 12px;
+  border: 1px solid var(--gray-100);
+  background: white;
+  border-radius: 100px;
+  font-size: 12px;
+  color: var(--gray-700);
+  cursor: pointer;
+  font-family: 'JetBrains Mono', monospace;
+}
+.tag.selected {
+  background: var(--navy);
+  color: white;
+  border-color: var(--navy);
+}
+.tag.selected::before {
+  content: '✓ ';
+  font-weight: 700;
+}
+.modal-textarea {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--gray-100);
+  border-radius: var(--radius);
+  font-family: inherit;
+  font-size: 14px;
+  resize: none;
+  height: 80px;
+  background: var(--gray-50);
+}
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 16px 28px;
+  background: var(--gray-50);
+  border-top: 1px solid var(--gray-100);
+}
+.btn-cancel {
+  padding: 10px 16px;
+  background: white;
+  color: var(--gray-600);
+  border: 1px solid var(--gray-100);
+  border-radius: var(--radius);
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  font-family: 'Syne', sans-serif;
+}
+.btn-submit-reject {
+  padding: 10px 18px;
+  background: var(--red);
+  color: white;
+  border: none;
+  border-radius: var(--radius);
+  font-family: 'Syne', sans-serif;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  letter-spacing: 0.02em;
+}
+
+/* ── CATEGORIES HEATMAP ── */
+.cats {
+  background: var(--off-white);
+  padding: 32px;
+}
+.cats-h {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 6px;
+}
+.cats-title {
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  font-size: 26px;
+  color: var(--navy);
+  letter-spacing: -0.015em;
+}
+.cats-legend {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  font-size: 12px;
+  color: var(--gray-500);
+}
+.legend-swatch {
+  display: inline-block;
+  width: 14px; height: 14px;
+  border-radius: 3px;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+.cats-sub {
+  color: var(--gray-500);
+  font-size: 14px;
+  margin-bottom: 20px;
+}
+.cat-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 10px;
+}
+.cat-cell {
+  background: white;
+  border-radius: 10px;
+  padding: 14px;
+  border: 1px solid var(--gray-100);
+  position: relative;
+  min-height: 110px;
+  cursor: pointer;
+}
+.cat-cell.critical {
+  background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+  border-color: #fca5a5;
+}
+.cat-cell.low {
+  background: linear-gradient(135deg, var(--orange-pale) 0%, #ffe0c2 100%);
+  border-color: #ffc88a;
+}
+.cat-cell.medium {
+  background: linear-gradient(135deg, #fefbe8 0%, #fef3c7 100%);
+  border-color: #fde68a;
+}
+.cat-cell.good {
+  background: white;
+}
+.cat-cell.pinned::after {
+  content: '◆';
+  position: absolute;
+  top: 8px; right: 10px;
+  color: var(--orange);
+  font-size: 12px;
+}
+.cat-name {
+  font-family: 'Syne', sans-serif;
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--navy);
+  line-height: 1.3;
+  margin-bottom: 10px;
+  letter-spacing: -0.005em;
+}
+.cat-count {
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  font-size: 24px;
+  color: var(--navy);
+  line-height: 1;
+}
+.cat-meta {
+  font-size: 10px;
+  color: var(--gray-500);
+  margin-top: 6px;
+  display: flex;
+  justify-content: space-between;
+  font-family: 'JetBrains Mono', monospace;
+}
+.cat-demand {
+  font-weight: 600;
+}
+.cat-demand.high { color: var(--red); }
+.cat-demand.med  { color: var(--amber); }
+
+/* ── INVENTORY ── */
+.inv {
+  background: white;
+  padding: 32px;
+}
+.inv-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.inv-search {
+  flex: 1;
+  position: relative;
+  max-width: 360px;
+}
+.inv-search input {
+  width: 100%;
+  padding: 10px 14px 10px 38px;
+  border: 1px solid var(--gray-100);
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-family: inherit;
+  background: var(--gray-50);
+}
+.inv-search::before {
+  content: '⌕';
+  position: absolute;
+  left: 14px; top: 50%;
+  transform: translateY(-50%);
+  color: var(--gray-400);
+}
+.inv-filter-select {
+  padding: 10px 14px;
+  border: 1px solid var(--gray-100);
+  border-radius: var(--radius);
+  font-size: 13px;
+  background: white;
+  color: var(--gray-700);
+  cursor: pointer;
+}
+.inv-count {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--gray-500);
+  margin-left: auto;
+}
+.btn-add {
+  padding: 10px 14px;
+  background: var(--orange);
+  color: white;
+  border: none;
+  border-radius: var(--radius);
+  font-family: 'Syne', sans-serif;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  letter-spacing: 0.02em;
+}
+.inv-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.inv-table thead th {
+  text-align: left;
+  padding: 12px 16px;
+  background: var(--gray-50);
+  font-family: 'Syne', sans-serif;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--gray-500);
+  font-weight: 600;
+  border-bottom: 1px solid var(--gray-100);
+}
+.inv-table tbody td {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--gray-50);
+  font-size: 13px;
+  color: var(--gray-700);
+}
+.inv-course-name {
+  font-weight: 600;
+  color: var(--navy);
+  font-family: 'Syne', sans-serif;
+  font-size: 14px;
+}
+.inv-cat-pill {
+  display: inline-block;
+  padding: 3px 8px;
+  background: var(--navy-soft);
+  color: var(--navy);
+  font-size: 11px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+.inv-sub-pill {
+  display: inline-block;
+  padding: 3px 8px;
+  background: var(--gray-50);
+  color: var(--gray-600);
+  font-size: 11px;
+  border-radius: 4px;
+}
+.inv-actions a {
+  color: var(--gray-400);
+  margin-right: 12px;
+  font-size: 13px;
+  text-decoration: none;
+}
+.inv-actions a:hover { color: var(--navy); }
+
+/* ── LEARNING ── */
+.learn {
+  background: var(--off-white);
+  padding: 32px;
+}
+.learn-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 20px;
+  margin-top: 20px;
+}
+.learn-card {
+  background: white;
+  border-radius: var(--radius);
+  padding: 24px;
+  border: 1px solid var(--gray-100);
+}
+.learn-card.dark {
+  background: linear-gradient(135deg, var(--navy-deep), var(--navy));
+  color: white;
+  border: none;
+  position: relative;
+  overflow: hidden;
+}
+.learn-card.dark::before {
+  content: '';
+  position: absolute;
+  top: -60px; right: -60px;
+  width: 240px; height: 240px;
+  background: radial-gradient(circle, rgba(244,121,32,0.2) 0%, transparent 70%);
+}
+.learn-h2 {
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--navy);
+  margin-bottom: 4px;
+}
+.learn-card.dark .learn-h2 { color: white; }
+.learn-card.dark .learn-h2-sub { color: rgba(255,255,255,0.6); }
+.learn-h2-sub {
+  font-size: 13px;
+  color: var(--gray-500);
+  margin-bottom: 20px;
+}
+
+/* Approval rate chart */
+.chart-area {
+  height: 200px;
+  position: relative;
+  margin: 24px 0 12px;
+}
+.chart-axis-y {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--gray-400);
+}
+.chart-svg-wrap {
+  margin-left: 32px;
+  height: 100%;
+  position: relative;
+  border-left: 1px solid var(--gray-100);
+  border-bottom: 1px solid var(--gray-100);
+}
+.chart-svg {
+  width: 100%;
+  height: 100%;
+}
+.chart-axis-x {
+  display: flex;
+  justify-content: space-between;
+  margin-left: 32px;
+  margin-top: 6px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--gray-400);
+}
+
+/* Prompt versions */
+.versions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.version-row {
+  padding: 14px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.08);
+  position: relative;
+}
+.version-row.current {
+  background: rgba(244,121,32,0.15);
+  border-color: rgba(244,121,32,0.4);
+}
+.version-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+.version-name {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: white;
+  font-weight: 500;
+}
+.version-pill {
+  font-family: 'Syne', sans-serif;
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  background: var(--orange);
+  color: white;
+  border-radius: 100px;
+  font-weight: 700;
+}
+.version-stats {
+  display: flex;
+  gap: 14px;
+  font-size: 11px;
+  color: rgba(255,255,255,0.7);
+}
+.version-stats strong { color: white; }
+
+.btn-regen {
+  margin-top: 18px;
+  padding: 12px 16px;
+  background: var(--orange);
+  color: white;
+  border: none;
+  border-radius: var(--radius);
+  font-family: 'Syne', sans-serif;
+  font-weight: 600;
+  font-size: 12px;
+  cursor: pointer;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  width: 100%;
+  position: relative;
+}
+
+/* Rejection distribution */
+.rej-dist {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.rej-row {
+  display: grid;
+  grid-template-columns: 140px 1fr 40px;
+  gap: 12px;
+  align-items: center;
+  font-size: 12px;
+}
+.rej-tag {
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--gray-600);
+}
+.rej-bar-wrap {
+  background: var(--gray-50);
+  height: 18px;
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+}
+.rej-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--navy-mid), var(--navy));
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  font-size: 10px;
+  color: white;
+  font-weight: 600;
+  font-family: 'JetBrains Mono', monospace;
+}
+.rej-count {
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--gray-500);
+  text-align: right;
+}
+
+.rej-trend {
+  margin-top: 12px;
+  padding: 10px 14px;
+  background: var(--green-soft);
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--green);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── ANNOTATION FOOTER ── */
+.annot {
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: 24px 1fr;
+  gap: 12px;
+  padding: 16px 20px;
+  background: white;
+  border-left: 3px solid var(--orange);
+  border-radius: 0 8px 8px 0;
+  border: 1px solid var(--gray-100);
+  border-left: 3px solid var(--orange);
+}
+.annot-mark {
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--orange);
+}
+.annot-text {
+  font-size: 13px;
+  color: var(--gray-600);
+  line-height: 1.6;
+}
+.annot-text strong { color: var(--navy); }
+
+/* ── FOOTER ── */
+.doc-footer {
+  background: var(--navy-deep);
+  color: rgba(255,255,255,0.5);
+  padding: 32px 48px;
+  text-align: center;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  font-family: 'Syne', sans-serif;
+}
+
+@media (max-width: 1024px) {
+  .dash-kpis { grid-template-columns: 1fr 1fr; }
+  .dash-grid { grid-template-columns: 1fr; }
+  .sug-card { grid-template-columns: 1fr; }
+  .cat-grid { grid-template-columns: repeat(3, 1fr); }
+  .learn-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- DOCUMENT HEADER -->
+<header class="doc-header">
+  <div class="doc-header-inner">
+    <div class="doc-tag">UI Design Preview · v1</div>
+    <h1 class="doc-title">Course Discovery <em>Agent</em><br>Dashboard Mockups</h1>
+    <p class="doc-sub">The screens behind the daily review loop. Each frame below shows a key Next.js route — the inventory views the team browses, the suggestion queue they work through every morning, and the learning admin that surfaces how the agent is improving over time.</p>
+    <div class="doc-meta">
+      <div class="doc-meta-item">
+        <div class="label">Brand</div>
+        <div class="value">Edstellar</div>
+      </div>
+      <div class="doc-meta-item">
+        <div class="label">Stack</div>
+        <div class="value">Next.js · Supabase</div>
+      </div>
+      <div class="doc-meta-item">
+        <div class="label">Screens</div>
+        <div class="value">07</div>
+      </div>
+      <div class="doc-meta-item">
+        <div class="label">Status</div>
+        <div class="value">Concept</div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- DESIGN LANGUAGE STRIP -->
+<div class="design-strip">
+  <div class="design-strip-inner">
+    <div class="dl-label">Design Language</div>
+    <div class="dl-swatches">
+      <div class="dl-swatch"><span class="dl-swatch-chip" style="background:#1A3C6E"></span>#1A3C6E Navy</div>
+      <div class="dl-swatch"><span class="dl-swatch-chip" style="background:#F47920"></span>#F47920 Orange</div>
+      <div class="dl-swatch"><span class="dl-swatch-chip" style="background:#f7f8fc;border:1px solid #e4e8f0"></span>#F7F8FC Canvas</div>
+      <div class="dl-swatch"><span class="dl-swatch-chip" style="background:#16a34a"></span>#16A34A Approve</div>
+      <div class="dl-swatch"><span class="dl-swatch-chip" style="background:#dc2626"></span>#DC2626 Reject</div>
+    </div>
+    <div class="dl-fonts">
+      <span>Syne · Display</span>
+      <span style="font-family:'DM Sans'; font-weight:400">DM Sans · Body</span>
+      <span style="font-family:'JetBrains Mono'; font-size:11px">JetBrains Mono · Data</span>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- ═══════════════════════════════════ -->
+  <!-- SCREEN 01 · LOGIN -->
+  <!-- ═══════════════════════════════════ -->
+  <section class="screen">
+    <div class="screen-meta">
+      <span class="screen-num">Screen 01</span>
+      <h2 class="screen-title">Sign In</h2>
+      <span class="screen-route">/login</span>
+    </div>
+    <p class="screen-note">Single entry point. Supabase Auth handles email magic-link and Google SSO. Role assignment (admin vs. reviewer) is set in user metadata and enforced everywhere downstream by Postgres RLS.</p>
+
+    <div class="browser">
+      <div class="browser-bar">
+        <div class="browser-dots">
+          <span class="browser-dot"></span>
+          <span class="browser-dot"></span>
+          <span class="browser-dot"></span>
+        </div>
+        <div class="browser-url"><span class="domain">agent.edstellar.com</span>/login</div>
+      </div>
+      <div class="login-bg">
+        <div class="login-card">
+          <div class="login-brand">
+            <div class="login-mark"></div>
+            <div class="login-title">Course Discovery Agent</div>
+            <div class="login-sub">Sign in to review today's suggestions</div>
+          </div>
+          <div class="login-form">
+            <button class="btn-google">
+              <span style="font-weight:700; color:#4285F4">G</span>
+              Continue with Google
+            </button>
+            <div class="login-divider">or with email</div>
+            <input class="login-input" type="email" placeholder="you@edstellar.com" value="vijay@edstellar.com">
+            <button class="btn-primary">Send Magic Link →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="annot">
+      <div class="annot-mark">01</div>
+      <div class="annot-text">Two auth paths — <strong>Google SSO</strong> for the Edstellar workspace, <strong>magic link</strong> as a fallback. No passwords stored. After sign-in, role determines the landing page (reviewers → `/suggestions/today`, admins → `/dashboard`).</div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════ -->
+  <!-- SCREEN 02 · DASHBOARD -->
+  <!-- ═══════════════════════════════════ -->
+  <section class="screen">
+    <div class="screen-meta">
+      <span class="screen-num">Screen 02</span>
+      <h2 class="screen-title">Dashboard</h2>
+      <span class="screen-route">/dashboard</span>
+    </div>
+    <p class="screen-note">The morning overview. At-a-glance state of the agent: how much work is in the queue, how the review pace is trending, which categories are under attack today, and which rejection reasons have spiked.</p>
+
+    <div class="browser">
+      <div class="browser-bar">
+        <div class="browser-dots">
+          <span class="browser-dot"></span>
+          <span class="browser-dot"></span>
+          <span class="browser-dot"></span>
+        </div>
+        <div class="browser-url"><span class="domain">agent.edstellar.com</span>/dashboard</div>
+      </div>
+
+      <div class="app-nav">
+        <div class="app-logo"><div class="app-logo-mark"></div>Course Agent</div>
+        <div class="app-nav-links">
+          <div class="app-nav-link active">Dashboard</div>
+          <div class="app-nav-link">Suggestions</div>
+          <div class="app-nav-link">Inventory</div>
+          <div class="app-nav-link">Categories</div>
+          <div class="app-nav-link">Learning</div>
+        </div>
+        <div class="app-nav-right">
+          <div class="app-nav-search"><input placeholder="Search courses, categories..."></div>
+          <div class="app-nav-avatar">VK</div>
+        </div>
+      </div>
+
+      <div class="dash">
+        <div class="dash-greeting">
+          <h1 class="dash-h1">Good morning, Vijay. <span class="greeting-mute">Here's the agent's overnight work.</span></h1>
+          <div class="dash-date">SAT · MAY 16, 2026 · 08:14</div>
+        </div>
+        <p class="dash-sub">Run #284 completed at 04:32. 32 new candidates produced across 5 categories, all pending your review.</p>
+
+        <!-- KPIs -->
+        <div class="dash-kpis">
+          <div class="kpi featured">
+            <div class="kpi-label">Pending Review</div>
+            <div class="kpi-value">32</div>
+            <div class="kpi-meta">across 5 under-supplied categories</div>
+            <div class="kpi-cta">Review now →</div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-label">Approval Rate · 7d</div>
+            <div class="kpi-value">47%</div>
+            <div class="kpi-meta"><span class="trend-up">▲ 6%</span> vs. prior 7d</div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-label">Repeat Rejections</div>
+            <div class="kpi-value">3%</div>
+            <div class="kpi-meta"><span class="trend-down">▼ 4%</span> trending right</div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-label">Active Prompt</div>
+            <div class="kpi-value" style="font-size:28px">v0.7</div>
+            <div class="kpi-meta">52% win-rate · Opus 4.7</div>
+          </div>
+        </div>
+
+        <!-- Charts row -->
+        <div class="dash-grid">
+          <div class="dash-card">
+            <div class="dash-card-h">
+              <div class="dash-card-title">Approval rate · last 30 days</div>
+              <a class="dash-card-link">Open Learning →</a>
+            </div>
+            <div class="minibars">
+              <div class="minibar"></div>
+              <div class="minibar"></div>
+              <div class="minibar"></div>
+              <div class="minibar"></div>
+              <div class="minibar"></div>
+              <div class="minibar"></div>
+              <div class="minibar"></div>
+            </div>
+            <div class="minibar-labels">
+              <span>W1</span><span>W2</span><span>W3</span><span>W4</span><span>W5</span><span>W6</span><span>W7</span>
+            </div>
+          </div>
+
+          <div class="dash-card">
+            <div class="dash-card-h">
+              <div class="dash-card-title">Top rejection reasons · 7d</div>
+            </div>
+            <div class="reasons">
+              <div>
+                <div class="reasons-row">
+                  <div class="reason-name">already_exists</div>
+                  <div class="reason-count">9</div>
+                </div>
+                <div class="reason-bar"><div class="reason-fill" style="width:72%"></div></div>
+              </div>
+              <div>
+                <div class="reasons-row">
+                  <div class="reason-name">price_unrealistic</div>
+                  <div class="reason-count">6</div>
+                </div>
+                <div class="reason-bar"><div class="reason-fill" style="width:48%"></div></div>
+              </div>
+              <div>
+                <div class="reasons-row">
+                  <div class="reason-name">too_niche</div>
+                  <div class="reason-count">4</div>
+                </div>
+                <div class="reason-bar"><div class="reason-fill" style="width:32%"></div></div>
+              </div>
+              <div>
+                <div class="reasons-row">
+                  <div class="reason-name">weak_references</div>
+                  <div class="reason-count">2</div>
+                </div>
+                <div class="reason-bar"><div class="reason-fill" style="width:16%"></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="dash-card" style="margin-top:16px">
+          <div class="dash-card-h">
+            <div class="dash-card-title">Recent activity</div>
+            <a class="dash-card-link">View all →</a>
+          </div>
+          <div class="activity">
+            <div class="activity-row">
+              <div class="activity-dot run">↻</div>
+              <div class="activity-text"><strong>Run #284</strong> completed · 32 candidates across Data Privacy, Decision Making, Health & Wellbeing, Blockchain, Workplace Safety</div>
+              <div class="activity-time">04:32</div>
+            </div>
+            <div class="activity-row">
+              <div class="activity-dot approve">✓</div>
+              <div class="activity-text"><strong>Priya R.</strong> approved <em>"European Data Privacy &amp; GDPR Compliance for Enterprise Teams"</em></div>
+              <div class="activity-time">YDA · 17:42</div>
+            </div>
+            <div class="activity-row">
+              <div class="activity-dot reject">✕</div>
+              <div class="activity-text"><strong>Vijay K.</strong> rejected <em>"Bitcoin Day Trading Basics"</em> · <span style="color:var(--red)">not_corporate_relevant</span></div>
+              <div class="activity-time">YDA · 16:08</div>
+            </div>
+            <div class="activity-row">
+              <div class="activity-dot approve">✓</div>
+              <div class="activity-text"><strong>Priya R.</strong> approved <em>"Enterprise Blockchain Strategy for Business Leaders"</em></div>
+              <div class="activity-time">YDA · 15:51</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="annot">
+      <div class="annot-mark">02</div>
+      <div class="annot-text"><strong>Featured KPI</strong> draws the eye to today's queue size — the single number that decides whether the day starts in this app. Approval-rate trend and repeat-rejection rate sit alongside as the two health metrics that prove the learning loop is working.</div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════ -->
+  <!-- SCREEN 03 · SUGGESTIONS QUEUE -->
+  <!-- ═══════════════════════════════════ -->
+  <section class="screen">
+    <div class="screen-meta">
+      <span class="screen-num">Screen 03</span>
+      <h2 class="screen-title">Today's Suggestions</h2>
+      <span class="screen-route">/suggestions/today</span>
+    </div>
+    <p class="screen-note">The core daily workflow. One card per candidate, sorted by confidence. The right rail always shows the closest existing Edstellar course with the similarity score, so the reviewer can see at a glance whether this is a genuine gap or a paraphrase of something we already offer.</p>
+
+    <div class="browser">
+      <div class="browser-bar">
+        <div class="browser-dots">
+          <span class="browser-dot"></span>
+          <span class="browser-dot"></span>
+          <span class="browser-dot"></span>
+        </div>
+        <div class="browser-url"><span class="domain">agent.edstellar.com</span>/suggestions/today</div>
+      </div>
+
+      <div class="app-nav">
+        <div class="app-logo"><div class="app-logo-mark"></div>Course Agent</div>
+        <div class="app-nav-links">
+          <div class="app-nav-link">Dashboard</div>
+          <div class="app-nav-link active">Suggestions</div>
+          <div class="app-nav-link">Inventory</div>
+          <div class="app-nav-link">Categories</div>
+          <div class="app-nav-link">Learning</div>
+        </div>
+        <div class="app-nav-right">
+          <div class="app-nav-search"><input placeholder="Search courses, categories..."></div>
+          <div class="app-nav-avatar">VK</div>
+        </div>
+      </div>
+
+      <div class="queue">
+        <div class="queue-h">
+          <div>
+            <h1 class="queue-title">Today's Suggestions</h1>
+            <p class="queue-sub">Saturday, May 16 · 32 candidates · 5 categories targeted</p>
+          </div>
+          <div class="queue-progress">
+            <div class="queue-progress-row">
+              <span class="label">Progress</span>
+              <span style="font-family:'JetBrains Mono'; font-weight:600; color:var(--navy)">11 / 32</span>
+            </div>
+            <div class="queue-progress-bar"><div class="queue-progress-fill"></div></div>
+            <div style="font-size:11px; color:var(--gray-500); margin-top:6px">21 left · ≈ 18 min remaining</div>
+          </div>
+        </div>
+
+        <div class="queue-filters">
+          <div class="filter-chip active">All (32)</div>
+          <div class="filter-chip">Data Privacy (10)</div>
+          <div class="filter-chip">Decision Making (8)</div>
+          <div class="filter-chip">Health & Wellbeing (5)</div>
+          <div class="filter-chip">Blockchain (5)</div>
+          <div class="filter-chip">Workplace Safety (4)</div>
+          <div class="filter-chip" style="margin-left:auto">Assigned to me</div>
+        </div>
+
+        <!-- Focused suggestion card -->
+        <div class="sug-card focused">
+          <div class="sug-main">
+            <div class="sug-top">
+              <span class="sug-cat">Data Privacy and Security</span>
+              <span class="sug-price">$3,200 / learner</span>
+              <span class="sug-format">Instructor-led</span>
+            </div>
+            <h3 class="sug-title">European Data Privacy &amp; GDPR Compliance for Enterprise Teams</h3>
+            <p class="sug-rationale">GDPR enforcement and post-Brexit divergence drive sustained EU privacy demand. Major B2B providers run instructor-led variants at the $3k tier covering this exact body of knowledge. <strong style="color:var(--navy)">Certification-safe title</strong> — captures the same scope as market-leading credentials without referencing any certifying body.</p>
+
+            <div class="sug-metas">
+              <div>
+                <span class="sug-meta-label">Audience</span>
+                <span class="sug-meta-value">Privacy officers, DPOs, Legal & compliance leads</span>
+              </div>
+              <div>
+                <span class="sug-meta-label">Duration</span>
+                <span class="sug-meta-value">3 days</span>
+              </div>
+              <div>
+                <span class="sug-meta-label">Price Basis</span>
+                <span class="sug-meta-value">$3,000–$3,500 (3 competitors)</span>
+              </div>
+            </div>
+
+            <div class="sug-refs-label">Source references (3) · market validation only</div>
+            <div class="sug-refs">
+              <a class="sug-ref">IAPP · Privacy Training Catalogue</a>
+              <a class="sug-ref">InfosecTrain · Privacy Training</a>
+              <a class="sug-ref">Skillsoft Percipio · Learning Platform</a>
+            </div>
+
+            <div class="sug-actions">
+              <button class="btn-approve">✓ Approve</button>
+              <button class="btn-reject">✕ Reject</button>
+              <button class="btn-revise">↻ Needs revision</button>
+            </div>
+            <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap; font-size:11px;">
+              <span style="display:inline-flex; align-items:center; gap:6px; padding:4px 10px; background:var(--green-soft); color:var(--green); border-radius:100px; font-weight:600; font-family:'JetBrains Mono', monospace;">✓ certification-safe</span>
+              <span style="display:inline-flex; align-items:center; gap:6px; padding:4px 10px; background:var(--green-soft); color:var(--green); border-radius:100px; font-weight:600; font-family:'JetBrains Mono', monospace;">✓ references verified</span>
+              <span style="display:inline-flex; align-items:center; gap:6px; padding:4px 10px; background:var(--green-soft); color:var(--green); border-radius:100px; font-weight:600; font-family:'JetBrains Mono', monospace;">✓ no inventory match</span>
+            </div>
+          </div>
+
+          <aside class="sug-side">
+            <div class="sug-side-h">Closest Existing Course</div>
+            <div class="sug-side-course">Data Privacy Solutions Engineer</div>
+            <div class="sug-side-link">edstellar.com/course/<br>data-privacy-solutions-engineer-training</div>
+            <div class="sug-side-sim">
+              <div class="sug-side-sim-row">
+                <span class="sug-side-sim-label">Vector similarity</span>
+                <span class="sug-side-sim-val">0.71</span>
+              </div>
+              <div class="sug-side-sim-row" style="margin-bottom:0">
+                <span class="sug-side-sim-label">Fuzzy title match</span>
+                <span class="sug-side-sim-val">42 / 100</span>
+              </div>
+            </div>
+            <div class="sug-side-diff">
+              <strong>Why it's different:</strong> Existing course is general data privacy engineering. The proposed course is specifically scoped to EU regulation (GDPR, post-Brexit divergence, cross-border transfers), targeted at DPOs and compliance teams rather than engineers — same domain, different audience and depth.
+            </div>
+          </aside>
+        </div>
+
+        <!-- Second card -->
+        <div class="sug-card">
+          <div class="sug-main">
+            <div class="sug-top">
+              <span class="sug-cat">Decision Making</span>
+              <span class="sug-price">$2,950 / learner</span>
+              <span class="sug-format">Instructor-led</span>
+            </div>
+            <h3 class="sug-title">Scenario Planning and Strategic Foresight for Executives</h3>
+            <p class="sug-rationale">Post-pandemic uncertainty has lifted demand for structured foresight methods. Oxford's exec ed program runs instructor-led variants quarterly; GP Strategies offers a 3-day enterprise version. Maps cleanly to the under-supplied Decision Making category.</p>
+            <div class="sug-metas">
+              <div>
+                <span class="sug-meta-label">Audience</span>
+                <span class="sug-meta-value">Senior leaders, strategy & planning teams</span>
+              </div>
+              <div>
+                <span class="sug-meta-label">Duration</span>
+                <span class="sug-meta-value">3 days</span>
+              </div>
+              <div>
+                <span class="sug-meta-label">Price Basis</span>
+                <span class="sug-meta-value">$2,800–$3,200 (2 competitors)</span>
+              </div>
+            </div>
+            <div class="sug-refs-label">Source references (3)</div>
+            <div class="sug-refs">
+              <a class="sug-ref">Oxford Executive Education</a>
+              <a class="sug-ref">Skillsoft Percipio</a>
+              <a class="sug-ref">GP Strategies · Leadership Development</a>
+            </div>
+            <div class="sug-actions">
+              <button class="btn-approve">✓ Approve</button>
+              <button class="btn-reject">✕ Reject</button>
+              <button class="btn-revise">↻ Needs revision</button>
+            </div>
+          </div>
+          <aside class="sug-side">
+            <div class="sug-side-h">Closest Existing Course</div>
+            <div class="sug-side-course">Strategic Decision-Making for Leaders</div>
+            <div class="sug-side-link">edstellar.com/course/<br>strategic-decision-making-for-leaders-training</div>
+            <div class="sug-side-sim">
+              <div class="sug-side-sim-row">
+                <span class="sug-side-sim-label">Vector similarity</span>
+                <span class="sug-side-sim-val">0.68</span>
+              </div>
+              <div class="sug-side-sim-row" style="margin-bottom:0">
+                <span class="sug-side-sim-label">Fuzzy title match</span>
+                <span class="sug-side-sim-val">38 / 100</span>
+              </div>
+            </div>
+            <div class="sug-side-diff">
+              <strong>Why it's different:</strong> Existing course teaches decision frameworks generally. Proposed course is specifically methodology-focused (scenarios, signposts, wind-tunnelling) — a recognised executive ed sub-discipline.
+            </div>
+          </aside>
+        </div>
+      </div>
+    </div>
+
+    <div class="annot">
+      <div class="annot-mark">03</div>
+      <div class="annot-text"><strong>Card density is deliberate.</strong> One suggestion per scroll-height means reviewers can't speed-click without seeing the whole context — title, rationale, price basis, sources, and the closest existing course. Most rejections happen because the candidate IS already in inventory; surfacing that side-by-side prevents wasted decisions.</div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════ -->
+  <!-- SCREEN 04 · REJECT MODAL -->
+  <!-- ═══════════════════════════════════ -->
+  <section class="screen">
+    <div class="screen-meta">
+      <span class="screen-num">Screen 04</span>
+      <h2 class="screen-title">Reject with Structured Reason</h2>
+      <span class="screen-route">/suggestions/today · modal</span>
+    </div>
+    <p class="screen-note">The single most important interaction in the system. Reviewers <em>must</em> select at least one tag from the structured taxonomy — free text alone produces a noisy signal the agent can't learn from. The tags become the agent's negative memory for the next 90 days.</p>
+
+    <div class="browser">
+      <div class="browser-bar">
+        <div class="browser-dots">
+          <span class="browser-dot"></span>
+          <span class="browser-dot"></span>
+          <span class="browser-dot"></span>
+        </div>
+        <div class="browser-url"><span class="domain">agent.edstellar.com</span>/suggestions/today</div>
+      </div>
+      <div class="modal-frame">
+        <div class="modal">
+          <div class="modal-h">
+            <div class="modal-eyebrow">Reject Suggestion</div>
+            <h2 class="modal-title">Why are you rejecting this?</h2>
+            <p class="modal-sub">Required — your reason trains the agent for tomorrow's run.</p>
+            <div class="modal-context">
+              <strong style="color:var(--navy)">Bitcoin Day Trading Basics</strong>
+              <span style="color:var(--gray-500); font-size:12px; margin-left:8px">· Blockchain and Cryptocurrency · $2,800</span>
+            </div>
+          </div>
+          <div class="modal-body">
+            <div class="modal-section">
+              <label class="modal-section-label">Select all that apply</label>
+              <div class="tag-grid">
+                <div class="tag">already_exists</div>
+                <div class="tag">near_duplicate_within_batch</div>
+                <div class="tag">not_instructor_led_market</div>
+                <div class="tag">price_unrealistic</div>
+                <div class="tag">topic_outdated</div>
+                <div class="tag">too_niche</div>
+                <div class="tag">wrong_category</div>
+                <div class="tag">weak_references</div>
+                <div class="tag selected">not_corporate_relevant</div>
+                <div class="tag">certification_name_used</div>
+                <div class="tag">other</div>
+              </div>
+            </div>
+            <div class="modal-section">
+              <label class="modal-section-label">Optional note · context for the agent</label>
+              <textarea class="modal-textarea" placeholder="e.g. Consumer trading is out of scope. Stick to enterprise-blockchain topics like supply-chain provenance, identity, or settlement infrastructure.">Consumer trading is out of scope. Stick to enterprise-blockchain topics like supply-chain provenance, identity, or settlement infrastructure.</textarea>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn-cancel">Cancel</button>
+            <button class="btn-submit-reject">Submit Rejection</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="annot">
+      <div class="annot-mark">04</div>
+      <div class="annot-text"><strong>Multi-select tags</strong> reflect reality — a rejection is often "wrong category AND too niche." The free-text note becomes a re-prompt hint if the same topic later resurfaces in a slightly different shape. Tags are enforced server-side; the agent's negative-memory blocklist is built directly from this table.</div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════ -->
+  <!-- SCREEN 05 · CATEGORIES HEATMAP -->
+  <!-- ═══════════════════════════════════ -->
+  <section class="screen">
+    <div class="screen-meta">
+      <span class="screen-num">Screen 05</span>
+      <h2 class="screen-title">Categories · Coverage Heatmap</h2>
+      <span class="screen-route">/categories</span>
+    </div>
+    <p class="screen-note">All 43 Edstellar categories at a glance, colour-graded by under-supply score (low course count ✕ high external demand). Admins click the diamond icon to pin a category — pinned categories jump the queue for tomorrow's run regardless of score.</p>
+
+    <div class="browser">
+      <div class="browser-bar">
+        <div class="browser-dots">
+          <span class="browser-dot"></span>
+          <span class="browser-dot"></span>
+          <span class="browser-dot"></span>
+        </div>
+        <div class="browser-url"><span class="domain">agent.edstellar.com</span>/categories</div>
+      </div>
+
+      <div class="app-nav">
+        <div class="app-logo"><div class="app-logo-mark"></div>Course Agent</div>
+        <div class="app-nav-links">
+          <div class="app-nav-link">Dashboard</div>
+          <div class="app-nav-link">Suggestions</div>
+          <div class="app-nav-link">Inventory</div>
+          <div class="app-nav-link active">Categories</div>
+          <div class="app-nav-link">Learning</div>
+        </div>
+        <div class="app-nav-right">
+          <div class="app-nav-search"><input placeholder="Search..."></div>
+          <div class="app-nav-avatar">VK</div>
+        </div>
+      </div>
+
+      <div class="cats">
+        <div class="cats-h">
+          <h1 class="cats-title">Coverage Heatmap · 43 Categories</h1>
+          <div class="cats-legend">
+            <div><span class="legend-swatch" style="background:#fecaca"></span>Critical (&lt; 10)</div>
+            <div><span class="legend-swatch" style="background:#ffe0c2"></span>Low (10–20)</div>
+            <div><span class="legend-swatch" style="background:#fef3c7"></span>Medium (20–40)</div>
+            <div><span class="legend-swatch" style="background:white;border:1px solid #e4e8f0"></span>Good (40+)</div>
+            <div><span style="color:var(--orange)">◆</span> Pinned</div>
+          </div>
+        </div>
+        <p class="cats-sub">Sorted by under-supply score · Sample of 24 of 43 · Click a cell to view category detail</p>
+
+        <div class="cat-grid">
+          <div class="cat-cell critical pinned">
+            <div class="cat-name">Data Privacy and Security</div>
+            <div class="cat-count">7</div>
+            <div class="cat-meta"><span>7 courses</span><span class="cat-demand high">DEM 92</span></div>
+          </div>
+          <div class="cat-cell critical pinned">
+            <div class="cat-name">Leadership Communication</div>
+            <div class="cat-count">7</div>
+            <div class="cat-meta"><span>7 courses</span><span class="cat-demand high">DEM 88</span></div>
+          </div>
+          <div class="cat-cell critical">
+            <div class="cat-name">Decision Making</div>
+            <div class="cat-count">8</div>
+            <div class="cat-meta"><span>8 courses</span><span class="cat-demand high">DEM 84</span></div>
+          </div>
+          <div class="cat-cell critical">
+            <div class="cat-name">Health and Well-Being</div>
+            <div class="cat-count">8</div>
+            <div class="cat-meta"><span>8 courses</span><span class="cat-demand med">DEM 71</span></div>
+          </div>
+          <div class="cat-cell low">
+            <div class="cat-name">Workplace D&I</div>
+            <div class="cat-count">10</div>
+            <div class="cat-meta"><span>10 courses</span><span class="cat-demand med">DEM 68</span></div>
+          </div>
+          <div class="cat-cell low pinned">
+            <div class="cat-name">Blockchain & Crypto</div>
+            <div class="cat-count">12</div>
+            <div class="cat-meta"><span>12 courses</span><span class="cat-demand high">DEM 81</span></div>
+          </div>
+          <div class="cat-cell low">
+            <div class="cat-name">Workplace Safety</div>
+            <div class="cat-count">14</div>
+            <div class="cat-meta"><span>14 courses</span><span class="cat-demand med">DEM 62</span></div>
+          </div>
+          <div class="cat-cell low">
+            <div class="cat-name">Data Science</div>
+            <div class="cat-count">15</div>
+            <div class="cat-meta"><span>15 courses</span><span class="cat-demand high">DEM 89</span></div>
+          </div>
+          <div class="cat-cell low">
+            <div class="cat-name">IoT</div>
+            <div class="cat-count">15</div>
+            <div class="cat-meta"><span>15 courses</span><span class="cat-demand med">DEM 64</span></div>
+          </div>
+          <div class="cat-cell low">
+            <div class="cat-name">Product Management</div>
+            <div class="cat-count">15</div>
+            <div class="cat-meta"><span>15 courses</span><span class="cat-demand med">DEM 73</span></div>
+          </div>
+          <div class="cat-cell low">
+            <div class="cat-name">ISO & Standards</div>
+            <div class="cat-count">16</div>
+            <div class="cat-meta"><span>16 courses</span><span class="cat-demand med">DEM 58</span></div>
+          </div>
+          <div class="cat-cell medium">
+            <div class="cat-name">Risk Management</div>
+            <div class="cat-count">21</div>
+            <div class="cat-meta"><span>21 courses</span><span class="cat-demand med">DEM 69</span></div>
+          </div>
+          <div class="cat-cell medium">
+            <div class="cat-name">Soft Skills</div>
+            <div class="cat-count">23</div>
+            <div class="cat-meta"><span>23 courses</span><span class="cat-demand med">DEM 54</span></div>
+          </div>
+          <div class="cat-cell medium">
+            <div class="cat-name">Project Management</div>
+            <div class="cat-count">24</div>
+            <div class="cat-meta"><span>24 courses</span><span class="cat-demand med">DEM 66</span></div>
+          </div>
+          <div class="cat-cell medium">
+            <div class="cat-name">Workflow Automation</div>
+            <div class="cat-count">25</div>
+            <div class="cat-meta"><span>25 courses</span><span class="cat-demand high">DEM 78</span></div>
+          </div>
+          <div class="cat-cell medium">
+            <div class="cat-name">Human Resource</div>
+            <div class="cat-count">27</div>
+            <div class="cat-meta"><span>27 courses</span><span class="cat-demand med">DEM 55</span></div>
+          </div>
+          <div class="cat-cell medium">
+            <div class="cat-name">Marketing</div>
+            <div class="cat-count">27</div>
+            <div class="cat-meta"><span>27 courses</span><span class="cat-demand med">DEM 61</span></div>
+          </div>
+          <div class="cat-cell medium">
+            <div class="cat-name">People Management</div>
+            <div class="cat-count">28</div>
+            <div class="cat-meta"><span>28 courses</span><span class="cat-demand med">DEM 65</span></div>
+          </div>
+          <div class="cat-cell good">
+            <div class="cat-name">Cybersecurity</div>
+            <div class="cat-count">33</div>
+            <div class="cat-meta"><span>33 courses</span><span class="cat-demand high">DEM 86</span></div>
+          </div>
+          <div class="cat-cell good">
+            <div class="cat-name">DevOps</div>
+            <div class="cat-count">35</div>
+            <div class="cat-meta"><span>35 courses</span><span class="cat-demand med">DEM 70</span></div>
+          </div>
+          <div class="cat-cell good">
+            <div class="cat-name">Networking</div>
+            <div class="cat-count">45</div>
+            <div class="cat-meta"><span>45 courses</span><span class="cat-demand med">DEM 60</span></div>
+          </div>
+          <div class="cat-cell good">
+            <div class="cat-name">Data Analytics</div>
+            <div class="cat-count">50</div>
+            <div class="cat-meta"><span>50 courses</span><span class="cat-demand high">DEM 79</span></div>
+          </div>
+          <div class="cat-cell good">
+            <div class="cat-name">Cloud Computing</div>
+            <div class="cat-count">108</div>
+            <div class="cat-meta"><span>108 courses</span><span class="cat-demand high">DEM 91</span></div>
+          </div>
+          <div class="cat-cell good">
+            <div class="cat-name">Artificial Intelligence</div>
+            <div class="cat-count">119</div>
+            <div class="cat-meta"><span>119 courses</span><span class="cat-demand high">DEM 97</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="annot">
+      <div class="annot-mark">05</div>
+      <div class="annot-text">The heatmap is the <strong>only place admins influence the agent's targeting</strong>. Pinning Blockchain (where Edstellar may want strategic investment despite middling course count) overrides the under-supply score for that category. Everything else is automatic.</div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════ -->
+  <!-- SCREEN 06 · INVENTORY -->
+  <!-- ═══════════════════════════════════ -->
+  <section class="screen">
+    <div class="screen-meta">
+      <span class="screen-num">Screen 06</span>
+      <h2 class="screen-title">Course Inventory</h2>
+      <span class="screen-route">/inventory</span>
+    </div>
+    <p class="screen-note">The live view of the 1,623 courses in the `course-agent.courses` table — the agent's source of truth. Admins can add, edit, or deactivate; changes trigger immediate embedding refresh so the next run's dedup logic stays accurate.</p>
+
+    <div class="browser">
+      <div class="browser-bar">
+        <div class="browser-dots">
+          <span class="browser-dot"></span>
+          <span class="browser-dot"></span>
+          <span class="browser-dot"></span>
+        </div>
+        <div class="browser-url"><span class="domain">agent.edstellar.com</span>/inventory</div>
+      </div>
+
+      <div class="app-nav">
+        <div class="app-logo"><div class="app-logo-mark"></div>Course Agent</div>
+        <div class="app-nav-links">
+          <div class="app-nav-link">Dashboard</div>
+          <div class="app-nav-link">Suggestions</div>
+          <div class="app-nav-link active">Inventory</div>
+          <div class="app-nav-link">Categories</div>
+          <div class="app-nav-link">Learning</div>
+        </div>
+        <div class="app-nav-right">
+          <div class="app-nav-search"><input placeholder="Search..."></div>
+          <div class="app-nav-avatar">VK</div>
+        </div>
+      </div>
+
+      <div class="inv">
+        <div class="cats-h" style="margin-bottom:18px">
+          <div>
+            <h1 class="cats-title">Inventory</h1>
+            <p class="cats-sub" style="margin-bottom:0">1,623 courses · 43 categories · 98 subcategories</p>
+          </div>
+        </div>
+        <div class="inv-toolbar">
+          <div class="inv-search"><input placeholder="Search by name, category, or URL..."></div>
+          <select class="inv-filter-select">
+            <option>All categories</option>
+            <option>Artificial Intelligence</option>
+          </select>
+          <select class="inv-filter-select">
+            <option>All subcategories</option>
+          </select>
+          <div class="inv-count">Showing 1–25 of 1,623</div>
+          <button class="btn-add">+ Add Course</button>
+        </div>
+
+        <table class="inv-table">
+          <thead>
+            <tr>
+              <th style="width:32px">#</th>
+              <th>Course Name</th>
+              <th>Category</th>
+              <th>Subcategory</th>
+              <th>Link</th>
+              <th style="width:120px">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="color:var(--gray-400); font-family:'JetBrains Mono'">1</td>
+              <td><div class="inv-course-name">.NET Design Patterns</div></td>
+              <td><span class="inv-cat-pill">Software Development</span></td>
+              <td><span class="inv-sub-pill">Programming and Frameworks</span></td>
+              <td style="color:var(--gray-400); font-size:11px; font-family:'JetBrains Mono'">/course/net-design-patterns-training</td>
+              <td class="inv-actions"><a>Edit</a><a style="color:var(--red)">Deactivate</a></td>
+            </tr>
+            <tr>
+              <td style="color:var(--gray-400); font-family:'JetBrains Mono'">17</td>
+              <td><div class="inv-course-name">AI Automation Mastery</div></td>
+              <td><span class="inv-cat-pill">Artificial Intelligence</span></td>
+              <td><span class="inv-sub-pill" style="opacity:.5">—</span></td>
+              <td style="color:var(--gray-400); font-size:11px; font-family:'JetBrains Mono'">/course/ai-automation-mastery-training</td>
+              <td class="inv-actions"><a>Edit</a><a style="color:var(--red)">Deactivate</a></td>
+            </tr>
+            <tr>
+              <td style="color:var(--gray-400); font-family:'JetBrains Mono'">269</td>
+              <td><div class="inv-course-name">Boost Productivity with ChatGPT</div></td>
+              <td><span class="inv-cat-pill">Artificial Intelligence</span></td>
+              <td><span class="inv-sub-pill">Natural Language Processing</span></td>
+              <td style="color:var(--gray-400); font-size:11px; font-family:'JetBrains Mono'">/course/boost-productivity-with-chatgpt-training</td>
+              <td class="inv-actions"><a>Edit</a><a style="color:var(--red)">Deactivate</a></td>
+            </tr>
+            <tr>
+              <td style="color:var(--gray-400); font-family:'JetBrains Mono'">474</td>
+              <td><div class="inv-course-name">Data Privacy</div></td>
+              <td><span class="inv-cat-pill">Data Privacy and Security</span></td>
+              <td><span class="inv-sub-pill" style="opacity:.5">—</span></td>
+              <td style="color:var(--gray-400); font-size:11px; font-family:'JetBrains Mono'">/course/data-privacy-training</td>
+              <td class="inv-actions"><a>Edit</a><a style="color:var(--red)">Deactivate</a></td>
+            </tr>
+            <tr>
+              <td style="color:var(--gray-400); font-family:'JetBrains Mono'">680</td>
+              <td><div class="inv-course-name">Generative AI (GenAI)</div></td>
+              <td><span class="inv-cat-pill">Artificial Intelligence</span></td>
+              <td><span class="inv-sub-pill" style="opacity:.5">—</span></td>
+              <td style="color:var(--gray-400); font-size:11px; font-family:'JetBrains Mono'">/course/generative-ai-training</td>
+              <td class="inv-actions"><a>Edit</a><a style="color:var(--red)">Deactivate</a></td>
+            </tr>
+            <tr>
+              <td style="color:var(--gray-400); font-family:'JetBrains Mono'">883</td>
+              <td><div class="inv-course-name">Kubernetes</div></td>
+              <td><span class="inv-cat-pill">DevOps</span></td>
+              <td><span class="inv-sub-pill">Container Orchestration</span></td>
+              <td style="color:var(--gray-400); font-size:11px; font-family:'JetBrains Mono'">/course/kubernetes-training</td>
+              <td class="inv-actions"><a>Edit</a><a style="color:var(--red)">Deactivate</a></td>
+            </tr>
+            <tr>
+              <td style="color:var(--gray-400); font-family:'JetBrains Mono'">1226</td>
+              <td><div class="inv-course-name">Python</div></td>
+              <td><span class="inv-cat-pill">Software Development</span></td>
+              <td><span class="inv-sub-pill">Programming and Frameworks</span></td>
+              <td style="color:var(--gray-400); font-size:11px; font-family:'JetBrains Mono'">/course/python-training</td>
+              <td class="inv-actions"><a>Edit</a><a style="color:var(--red)">Deactivate</a></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="annot">
+      <div class="annot-mark">06</div>
+      <div class="annot-text">Edits here are <strong>authoritative</strong>. The agent reads from this table on every run; deactivating a course removes it from the dedup memory, while adding a course immediately makes it part of "what we already have." All changes are versioned in an audit table.</div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════ -->
+  <!-- SCREEN 07 · LEARNING ADMIN -->
+  <!-- ═══════════════════════════════════ -->
+  <section class="screen">
+    <div class="screen-meta">
+      <span class="screen-num">Screen 07</span>
+      <h2 class="screen-title">Learning Admin</h2>
+      <span class="screen-route">/learning</span>
+    </div>
+    <p class="screen-note">Admin-only. The transparency surface — shows what the agent has learned, which prompt version is winning, where rejection reasons are trending, and lets the admin trigger a new prompt revision based on the latest feedback.</p>
+
+    <div class="browser">
+      <div class="browser-bar">
+        <div class="browser-dots">
+          <span class="browser-dot"></span>
+          <span class="browser-dot"></span>
+          <span class="browser-dot"></span>
+        </div>
+        <div class="browser-url"><span class="domain">agent.edstellar.com</span>/learning</div>
+      </div>
+
+      <div class="app-nav">
+        <div class="app-logo"><div class="app-logo-mark"></div>Course Agent</div>
+        <div class="app-nav-links">
+          <div class="app-nav-link">Dashboard</div>
+          <div class="app-nav-link">Suggestions</div>
+          <div class="app-nav-link">Inventory</div>
+          <div class="app-nav-link">Categories</div>
+          <div class="app-nav-link active">Learning</div>
+        </div>
+        <div class="app-nav-right">
+          <div class="app-nav-search"><input placeholder="Search..."></div>
+          <div class="app-nav-avatar">VK</div>
+        </div>
+      </div>
+
+      <div class="learn">
+        <div class="cats-h">
+          <div>
+            <h1 class="cats-title">Learning · Agent Self-Improvement</h1>
+            <p class="cats-sub" style="margin-bottom:0">How the agent is getting better — or not — based on reviewer feedback.</p>
+          </div>
+          <div style="font-size:12px; color:var(--gray-500); font-family:'JetBrains Mono'">UPDATED 04:32</div>
+        </div>
+
+        <div class="learn-grid">
+          <div class="learn-card">
+            <div class="learn-h2">Approval Rate · Last 90 Days</div>
+            <div class="learn-h2-sub">Win-rate per run, weekly rolling average</div>
+
+            <div class="chart-area">
+              <div class="chart-axis-y">
+                <span>80%</span><span>60%</span><span>40%</span><span>20%</span><span>0%</span>
+              </div>
+              <div class="chart-svg-wrap">
+                <svg class="chart-svg" viewBox="0 0 600 200" preserveAspectRatio="none">
+                  <defs>
+                    <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stop-color="#F47920" stop-opacity="0.25"/>
+                      <stop offset="100%" stop-color="#F47920" stop-opacity="0"/>
+                    </linearGradient>
+                  </defs>
+                  <!-- area -->
+                  <path d="M 0 165 L 50 158 L 100 152 L 150 145 L 200 138 L 250 130 L 300 122 L 350 115 L 400 105 L 450 95 L 500 88 L 550 78 L 600 70 L 600 200 L 0 200 Z" fill="url(#g)"/>
+                  <!-- line -->
+                  <path d="M 0 165 L 50 158 L 100 152 L 150 145 L 200 138 L 250 130 L 300 122 L 350 115 L 400 105 L 450 95 L 500 88 L 550 78 L 600 70" stroke="#F47920" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                  <!-- prompt promotion markers -->
+                  <line x1="200" y1="0" x2="200" y2="200" stroke="#1A3C6E" stroke-width="1" stroke-dasharray="3,3" opacity="0.3"/>
+                  <line x1="400" y1="0" x2="400" y2="200" stroke="#1A3C6E" stroke-width="1" stroke-dasharray="3,3" opacity="0.3"/>
+                  <circle cx="200" cy="138" r="4" fill="#1A3C6E"/>
+                  <circle cx="400" cy="105" r="4" fill="#1A3C6E"/>
+                  <circle cx="600" cy="70" r="4" fill="#F47920"/>
+                </svg>
+              </div>
+            </div>
+            <div class="chart-axis-x">
+              <span>Mar</span><span>Apr 1</span><span>Apr 15</span><span>May 1</span><span>May 15</span>
+            </div>
+
+            <div style="display:flex; gap:18px; margin-top:18px; font-size:12px; color:var(--gray-500)">
+              <div><span style="display:inline-block; width:10px; height:10px; background:#1A3C6E; border-radius:50%; margin-right:6px"></span>Prompt version promoted</div>
+              <div><span style="display:inline-block; width:10px; height:10px; background:#F47920; border-radius:50%; margin-right:6px"></span>Today (v0.7)</div>
+            </div>
+          </div>
+
+          <div class="learn-card dark">
+            <div class="learn-h2">Active Prompt Versions</div>
+            <div class="learn-h2-sub">A/B testing window: 2 runs each</div>
+
+            <div class="versions">
+              <div class="version-row current">
+                <div class="version-top">
+                  <span class="version-name">prompt_v0.7 · Opus 4.7</span>
+                  <span class="version-pill">Current</span>
+                </div>
+                <div class="version-stats">
+                  <span><strong>52%</strong> win-rate</span>
+                  <span><strong>14</strong> runs</span>
+                  <span>since May 09</span>
+                </div>
+              </div>
+              <div class="version-row">
+                <div class="version-top">
+                  <span class="version-name">prompt_v0.6 · Opus 4.6</span>
+                </div>
+                <div class="version-stats">
+                  <span><strong>46%</strong> win-rate</span>
+                  <span><strong>22</strong> runs</span>
+                  <span>retired</span>
+                </div>
+              </div>
+              <div class="version-row">
+                <div class="version-top">
+                  <span class="version-name">prompt_v0.5 · GPT-5</span>
+                </div>
+                <div class="version-stats">
+                  <span><strong>41%</strong> win-rate</span>
+                  <span><strong>18</strong> runs</span>
+                  <span>retired</span>
+                </div>
+              </div>
+            </div>
+
+            <button class="btn-regen">⚡ Generate Next Prompt From Feedback</button>
+          </div>
+        </div>
+
+        <div class="learn-card" style="margin-top:20px">
+          <div class="learn-h2">Rejection Reason Distribution · Last 30 Days</div>
+          <div class="learn-h2-sub">Goal: each reason trends downward as the agent learns to avoid it</div>
+
+          <div class="rej-dist">
+            <div class="rej-row">
+              <div class="rej-tag">already_exists</div>
+              <div class="rej-bar-wrap"><div class="rej-bar" style="width:78%">38 rejections</div></div>
+              <div class="rej-count">38 <span style="color:var(--green); font-size:10px">▼12</span></div>
+            </div>
+            <div class="rej-row">
+              <div class="rej-tag">price_unrealistic</div>
+              <div class="rej-bar-wrap"><div class="rej-bar" style="width:54%">26 rejections</div></div>
+              <div class="rej-count">26 <span style="color:var(--green); font-size:10px">▼4</span></div>
+            </div>
+            <div class="rej-row">
+              <div class="rej-tag">too_niche</div>
+              <div class="rej-bar-wrap"><div class="rej-bar" style="width:42%">21 rejections</div></div>
+              <div class="rej-count">21 <span style="color:var(--green); font-size:10px">▼7</span></div>
+            </div>
+            <div class="rej-row">
+              <div class="rej-tag">not_corporate_relevant</div>
+              <div class="rej-bar-wrap"><div class="rej-bar" style="width:30%">15 rejections</div></div>
+              <div class="rej-count">15 <span style="color:var(--green); font-size:10px">▼3</span></div>
+            </div>
+            <div class="rej-row">
+              <div class="rej-tag">weak_references</div>
+              <div class="rej-bar-wrap"><div class="rej-bar" style="width:22%">11 rejections</div></div>
+              <div class="rej-count">11 <span style="color:var(--green); font-size:10px">▼2</span></div>
+            </div>
+            <div class="rej-row">
+              <div class="rej-tag">not_instructor_led_market</div>
+              <div class="rej-bar-wrap"><div class="rej-bar" style="width:16%">8 rejections</div></div>
+              <div class="rej-count">8 <span style="color:var(--green); font-size:10px">▼5</span></div>
+            </div>
+            <div class="rej-row">
+              <div class="rej-tag">topic_outdated</div>
+              <div class="rej-bar-wrap"><div class="rej-bar" style="width:12%">6 rejections</div></div>
+              <div class="rej-count">6 <span style="color:var(--green); font-size:10px">▼1</span></div>
+            </div>
+            <div class="rej-row">
+              <div class="rej-tag">wrong_category</div>
+              <div class="rej-bar-wrap"><div class="rej-bar" style="width:10%">5 rejections</div></div>
+              <div class="rej-count">5 <span style="color:var(--gray-400); font-size:10px">—</span></div>
+            </div>
+            <div class="rej-row">
+              <div class="rej-tag">certification_name_used</div>
+              <div class="rej-bar-wrap"><div class="rej-bar" style="width:6%">3 rejections</div></div>
+              <div class="rej-count">3 <span style="color:var(--green); font-size:10px">▼9</span></div>
+            </div>
+          </div>
+
+          <div class="rej-trend">
+            ✓ All rejection reasons trending down month-over-month — the learning loop is working.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="annot">
+      <div class="annot-mark">07</div>
+      <div class="annot-text"><strong>Three views, one question:</strong> "is the agent getting better?" The approval-rate line should rise, the rejection-reason bars should shrink, and the prompt-version stack should show steady wins as new versions get promoted. Anything else is a signal to investigate.</div>
+    </div>
+  </section>
+
+</div>
+
+<!-- DOC FOOTER -->
+<footer class="doc-footer">
+  Edstellar Course Discovery Agent · UI Mockups v1 · Next.js + Supabase
+</footer>
+
+</body>
+</html>
