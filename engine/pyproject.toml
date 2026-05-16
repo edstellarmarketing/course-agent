@@ -16,6 +16,7 @@ dependencies = [
 [project.scripts]
 engine = "engine:main"
 smoke = "engine.scripts.smoke_test:main"
+embed_courses = "engine.scripts.embed_courses:main"
 
 [build-system]
 requires = ["uv_build>=0.9.21,<0.10.0"]
