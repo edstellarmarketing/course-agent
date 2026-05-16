@@ -79,6 +79,39 @@ def main() -> None:
         if r.status_code not in (200, 401, 404):
             raise RuntimeError(f"HTTP {r.status_code}")
 
+    def schema() -> None:
+        # Phase 3 verification: course-agent schema is exposed via
+        # PGRST_DB_SCHEMAS and the rejection_taxonomy table has the 11
+        # seeded rows. Accept-Profile tells PostgREST to read from
+        # course-agent instead of public.
+        r = httpx.get(
+            f"{cfg.supabase_url}rest/v1/rejection_taxonomy",
+            params={"select": "key"},
+            headers={
+                "apikey": cfg.supabase_service_role_key,
+                "Authorization": f"Bearer {cfg.supabase_service_role_key}",
+                "Accept-Profile": "course-agent",
+            },
+            timeout=15.0,
+        )
+        if r.status_code == 406:
+            raise RuntimeError(
+                "PostgREST 406 — schema 'course-agent' is not exposed. "
+                "Add it to PGRST_DB_SCHEMAS and restart the stack."
+            )
+        if r.status_code == 404:
+            raise RuntimeError(
+                "rejection_taxonomy table not found — apply "
+                "supabase/migrations/0001_initial.sql first."
+            )
+        r.raise_for_status()
+        rows = r.json()
+        if len(rows) != 11:
+            raise RuntimeError(
+                f"expected 11 rejection_taxonomy rows, got {len(rows)} — "
+                "apply supabase/migrations/0002_seed_rejection_taxonomy.sql."
+            )
+
     def openrouter() -> None:
         r = httpx.post(
             "https://openrouter.ai/api/v1/chat/completions",
@@ -125,6 +158,7 @@ def main() -> None:
 
     ok = True
     ok &= _check("Supabase reachable", supabase)
+    ok &= _check("course-agent schema applied (11 rejection tags)", schema)
     ok &= _check(f"OpenRouter completion ({SMOKE_OPENROUTER_MODEL})", openrouter)
     ok &= _check("Voyage AI embedding (voyage-3-large, 1024-dim)", voyage)
     ok &= _check("Serper search", serper)
