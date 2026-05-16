@@ -22,7 +22,7 @@ import { env } from "../src/lib/env";
 // so the missing-var error still fires from `env()`.
 loadDotenv({ path: ".env.local", quiet: true });
 
-const SINK = process.env.SMOKE_SINK_EMAIL ?? "course-agent-smoke@edstellar.com";
+const SINK = process.env.SMOKE_SINK_EMAIL ?? "marketing@edstellar.com";
 
 type Check = {
   name: string;
