@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import { mockCurrentReviewer } from "@/lib/mock/reviewers";
+import type { ReviewerProfile } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 type NavLink = {
@@ -46,9 +46,9 @@ const sections: NavSection[] = [
   },
 ];
 
-export function AppNav() {
+export function AppNav({ profile }: { profile: ReviewerProfile }) {
   const pathname = usePathname();
-  const isAdmin = mockCurrentReviewer.role === "admin";
+  const isAdmin = profile.role === "admin";
 
   return (
     <aside className="flex h-screen w-64 shrink-0 flex-col border-r border-gray-100 bg-white">
@@ -110,17 +110,19 @@ export function AppNav() {
       <div className="border-t border-gray-100 px-4 py-4">
         <div className="flex items-center gap-3">
           <div className="grid h-9 w-9 place-items-center rounded-full bg-navy-soft font-display text-sm font-semibold text-navy-deep">
-            {mockCurrentReviewer.name
+            {profile.name
               .split(" ")
               .map((p) => p[0])
-              .join("")}
+              .join("")
+              .slice(0, 2)
+              .toUpperCase()}
           </div>
           <div className="min-w-0 leading-tight">
             <div className="truncate text-sm font-medium text-gray-800">
-              {mockCurrentReviewer.name}
+              {profile.name}
             </div>
             <div className="truncate text-xs capitalize text-gray-500">
-              {mockCurrentReviewer.role}
+              {profile.role}
             </div>
           </div>
         </div>

@@ -39,13 +39,32 @@ const serverSchema = z.object({
 });
 
 const clientSchema = z.object({
+  // Optional so server-only tooling (the smoke test) doesn't require
+  // it. Browser bundles, however, MUST set this var in .env.local — the
+  // browser Supabase client throws "Invalid URL" if it's missing at
+  // runtime. On server-side, `env()` falls back to `SUPABASE_URL`.
+  NEXT_PUBLIC_SUPABASE_URL: z
+    .string()
+    .url("must be a valid URL")
+    .optional(),
   NEXT_PUBLIC_SUPABASE_ANON_KEY: z
     .string()
     .min(40, "anon keys are at least 40 chars"),
 });
 
 export type ServerEnv = z.infer<typeof serverSchema>;
-export type ClientEnv = z.infer<typeof clientSchema>;
+type ClientEnvParsed = z.infer<typeof clientSchema>;
+
+/**
+ * Consumer-facing client env. `NEXT_PUBLIC_SUPABASE_URL` is presented
+ * as `string` (not `string | undefined`) because `env()` fills it in
+ * from `SUPABASE_URL` on the server. Browser callers that hit this
+ * type when the user hasn't set the var will see a runtime "Invalid
+ * URL" from createBrowserClient — clear enough.
+ */
+export type ClientEnv = Omit<ClientEnvParsed, "NEXT_PUBLIC_SUPABASE_URL"> & {
+  NEXT_PUBLIC_SUPABASE_URL: string;
+};
 export type Env = ServerEnv & ClientEnv;
 
 let cached: Env | undefined;
@@ -54,12 +73,22 @@ let cached: Env | undefined;
  * Returns the validated env. Throws a single, clear error listing every
  * missing or malformed variable — never a cryptic null-pointer deep
  * inside a Supabase / Slack / Sentry SDK.
+ *
+ * Server vars are only validated server-side; in a browser bundle they
+ * aren't present (and shouldn't be), so we skip them. The TypeScript
+ * type still includes server fields, but accessing one from a Client
+ * Component returns `undefined` — write a runtime guard if that matters.
  */
 export function env(): Env {
   if (cached) return cached;
 
-  const serverResult = serverSchema.safeParse(process.env);
+  const isServer = typeof window === "undefined";
+
+  const serverResult = isServer
+    ? serverSchema.safeParse(process.env)
+    : ({ success: true as const, data: {} as ServerEnv });
   const clientResult = clientSchema.safeParse({
+    NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
     NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
   });
 
@@ -77,7 +106,15 @@ export function env(): Env {
     );
   }
 
-  cached = { ...serverResult.data, ...clientResult.data };
+  const merged = { ...serverResult.data, ...clientResult.data };
+  // Server-side fallback: SUPABASE_URL doubles as NEXT_PUBLIC_SUPABASE_URL
+  // when the user hasn't set the public alias. Browser bundles can't use
+  // this fallback (server vars aren't shipped), so they still need the
+  // explicit NEXT_PUBLIC_SUPABASE_URL.
+  if (!merged.NEXT_PUBLIC_SUPABASE_URL && merged.SUPABASE_URL) {
+    merged.NEXT_PUBLIC_SUPABASE_URL = merged.SUPABASE_URL;
+  }
+  cached = merged as Env;
   return cached;
 }
 

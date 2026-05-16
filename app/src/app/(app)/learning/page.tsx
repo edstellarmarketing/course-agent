@@ -1,8 +1,8 @@
 import { PageHeader } from "@/components/page-header";
+import { getCurrentReviewer } from "@/lib/auth/current-user";
 import { mockFeedback } from "@/lib/mock/feedback";
 import { mockPromptVersions } from "@/lib/mock/prompt-versions";
 import { mockRejectionTaxonomy } from "@/lib/mock/rejection-taxonomy";
-import { mockCurrentReviewer } from "@/lib/mock/reviewers";
 
 export const metadata = {
   title: "Learning Admin · Course Agent",
@@ -21,8 +21,9 @@ const APPROVAL_TREND = [
   { week: "May 12", rate: 0.64 },
 ];
 
-export default function LearningPage() {
-  const isAdmin = mockCurrentReviewer.role === "admin";
+export default async function LearningPage() {
+  const profile = await getCurrentReviewer();
+  const isAdmin = profile?.role === "admin";
 
   // Rejection-reason distribution across the full feedback window.
   const tagCounts = new Map<string, number>();

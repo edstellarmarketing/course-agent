@@ -1,6 +1,7 @@
 import { PageHeader } from "@/components/page-header";
 import { SettingsModelsSection } from "@/components/settings-models-section";
-import { mockCurrentReviewer, mockReviewers } from "@/lib/mock/reviewers";
+import { getCurrentReviewer } from "@/lib/auth/current-user";
+import { mockReviewers } from "@/lib/mock/reviewers";
 import type { UserRole } from "@/lib/types";
 
 export const metadata = {
@@ -19,8 +20,9 @@ const INTEGRATIONS = [
   { name: "Sentry", purpose: "Error reporting in both apps", status: "pending" as const, phase: "Phase 9" },
 ];
 
-export default function SettingsPage() {
-  const canEdit = mockCurrentReviewer.role === "admin";
+export default async function SettingsPage() {
+  const profile = await getCurrentReviewer();
+  const canEdit = profile?.role === "admin";
   return (
     <>
       <PageHeader

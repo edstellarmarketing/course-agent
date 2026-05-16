@@ -29,6 +29,7 @@ import httpx
 from pydantic import ValidationError
 
 from engine.config import settings
+from engine.supabase import supabase as get_supabase
 
 # Windows' default console code page (cp1252) can't render the ✓/✗ glyphs we
 # use in pass/fail lines. Forcing UTF-8 keeps the output identical across
@@ -133,6 +134,23 @@ def main() -> None:
                 "apply supabase/migrations/0002_seed_rejection_taxonomy.sql."
             )
 
+    def supabase_client() -> None:
+        # Phase 3 Step 9: prove the engine's supabase-py wrapper can
+        # talk to PostgREST and see the rejection_taxonomy rows. The
+        # earlier `schema()` check via raw httpx is the canonical 406
+        # distinguisher; this one verifies the typed client wraps it.
+        rows = (
+            get_supabase()
+            .table("rejection_taxonomy")
+            .select("key")
+            .execute()
+            .data
+        )
+        if len(rows) != 11:
+            raise RuntimeError(
+                f"expected 11 rejection-tag rows via supabase-py, got {len(rows)}"
+            )
+
     def openrouter() -> None:
         r = httpx.post(
             "https://openrouter.ai/api/v1/chat/completions",
@@ -180,6 +198,7 @@ def main() -> None:
     ok = True
     ok &= _check("Supabase reachable", supabase)
     ok &= _check("course-agent schema applied (11 rejection tags)", schema)
+    ok &= _check("supabase-py client reaches rejection_taxonomy", supabase_client)
     ok &= _check(f"OpenRouter completion ({SMOKE_OPENROUTER_MODEL})", openrouter)
     ok &= _check("Voyage AI embedding (voyage-3-large, 1024-dim)", voyage)
     ok &= _check("Serper search", serper)
