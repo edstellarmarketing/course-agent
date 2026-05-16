@@ -21,7 +21,7 @@ Sister-doc to `edstellar_agent_build_plan.md`. The build plan describes *what* P
 | Decision | Recommendation | Why |
 |---|---|---|
 | Self-hosted Supabase vs Supabase Cloud | **Self-hosted** (already running on Edstellar infra per §5.1) | We control the network, the pgvector version, and the `course-agent` schema lives next to existing data |
-| OpenRouter model in production | **`anthropic/claude-sonnet-4.6`** for research; **`anthropic/claude-haiku-4-5-20251001`** for the Rule 10 LLM judge | Sonnet for reasoning quality, Haiku for cheap fast filtering — matches the cost shape in §6 of the architectural plan |
+| OpenRouter default model in production | **`deepseek/deepseek-v3.2-exp`** for research; **`deepseek/deepseek-chat-v3.1`** for the Rule 10 LLM judge | DeepSeek delivers strong reasoning at ~10× lower per-token cost than the frontier US models — matches the cost shape we want for a nightly pipeline. Admins can swap to other providers from `/settings → Models` if a specific category needs a different model; the `prompt_versions.model_slug` column means every prompt remembers which model it was tested with. |
 | Voyage model | **`voyage-3-large`**, `input_type="document"` for courses, `input_type="query"` for new candidates | 1024-dim default, matches the `vector(1024)` column |
 | Search provider | **Serper** as primary, Tavily as fallback | Cheaper per call, used directly by ScrapeGraphAI's `SearchGraph` |
 | Email transport | **Google Apps Script `doPost` webhook** sending from the existing edstellar Gmail | No SES/Resend account, no SPF/DKIM dance — leverages the workspace's existing sender reputation |
@@ -57,9 +57,9 @@ The Supabase instance already exists on Edstellar infra. Phase 3 creates the sch
   curl https://openrouter.ai/api/v1/chat/completions \
     -H "Authorization: Bearer $OPENROUTER_API_KEY" \
     -H "Content-Type: application/json" \
-    -d '{"model":"anthropic/claude-haiku-4-5-20251001","messages":[{"role":"user","content":"ping"}],"max_tokens":5}'
+    -d '{"model":"deepseek/deepseek-chat-v3.1","messages":[{"role":"user","content":"ping"}],"max_tokens":5}'
   ```
-  Expect a 200 with a `choices[0].message.content` field. A 402 means the wallet is empty; a 403 usually means the key has model restrictions.
+  Expect a 200 with a `choices[0].message.content` field. A 402 means the wallet is empty; a 403 usually means the key has model restrictions. The default catalogue lists DeepSeek first, but the smoke test should still pass for whatever model the admin has selected in `/settings → Models`.
 
 ### 3. Voyage AI — embeddings *(parallel-safe with step 2)*
 
@@ -369,11 +369,13 @@ def main() -> None:
             raise RuntimeError(f"HTTP {r.status_code}")
 
     def openrouter():
+        # The smoke test pings whichever model the admin has set as the
+        # cheap-and-fast default in /settings → Models; DeepSeek out of the box.
         r = httpx.post(
             "https://openrouter.ai/api/v1/chat/completions",
             headers={"Authorization": f"Bearer {cfg.openrouter_api_key}"},
             json={
-                "model": "anthropic/claude-haiku-4-5-20251001",
+                "model": "deepseek/deepseek-chat-v3.1",
                 "messages": [{"role": "user", "content": "ping"}],
                 "max_tokens": 5,
             },
@@ -432,7 +434,7 @@ Add `uv add httpx`.
 
 ## Gotchas worth knowing about up front
 
-- **OpenRouter routes models to specific providers in specific regions.** A model that works for the Haiku ping may be unavailable for the Sonnet call if the regional provider is down. Pin the exact model slug (with date suffix) for production runs in `prompt_versions.model_slug`.
+- **OpenRouter routes models to specific providers in specific regions.** A model that works for the cheap-judge ping may be unavailable for the heavy research call if the regional provider is down. Pin the exact model slug (with date suffix) for production runs in `prompt_versions.model_slug`. DeepSeek in particular sometimes routes through Together AI vs Fireworks vs DeepSeek-direct — quality is comparable, latency isn't.
 - **Voyage rate-limits embeddings to ~300 RPM on the free tier.** The 1,623-course Phase 4 backfill needs batching (128/request) and ~30s of total throughput. Plan accordingly.
 - **Google Apps Script `/exec` URLs change every re-deploy.** Bind a version (the dropdown in the deploy dialog) and re-use that deployment ID rather than re-deploying — otherwise the env var goes stale.
 - **`SUPABASE_SERVICE_ROLE_KEY` in `app/`** is for Server Actions only. If you find yourself importing it from a Client Component, stop — that key would ship to every browser. Use the anon key on the client, the service-role key only in `lib/supabase/server.ts`.

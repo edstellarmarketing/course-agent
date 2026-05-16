@@ -157,7 +157,7 @@ export const mockTodaysRun = {
   id: TODAY_RUN,
   startedAt: "2026-05-16T00:05:00.000Z",
   finishedAt: "2026-05-16T00:43:00.000Z",
-  modelUsed: "anthropic/claude-sonnet-4.6",
+  modelUsed: "deepseek/deepseek-v3.2-exp",
   promptVersionId: "pv-014",
   categoriesTargeted: [
     "Data Privacy and Security",

@@ -1,5 +1,6 @@
 import { PageHeader } from "@/components/page-header";
-import { mockReviewers } from "@/lib/mock/reviewers";
+import { SettingsModelsSection } from "@/components/settings-models-section";
+import { mockCurrentReviewer, mockReviewers } from "@/lib/mock/reviewers";
 import type { UserRole } from "@/lib/types";
 
 export const metadata = {
@@ -19,15 +20,18 @@ const INTEGRATIONS = [
 ];
 
 export default function SettingsPage() {
+  const canEdit = mockCurrentReviewer.role === "admin";
   return (
     <>
       <PageHeader
         eyebrow="Admin"
         title="Settings"
-        description="Reviewer roster, agent schedule, and integration status. Phase 1 ships the shell; Phases 2–9 fill in the wires."
+        description="Reviewer roster, model selection, agent schedule, and integration status. Phase 1 ships the shell; Phases 2–9 fill in the wires."
       />
 
       <div className="flex-1 space-y-6 px-8 py-8">
+        <SettingsModelsSection canEdit={canEdit} />
+
         <section className="rounded-lg border border-gray-100 bg-white">
           <header className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
             <div>
