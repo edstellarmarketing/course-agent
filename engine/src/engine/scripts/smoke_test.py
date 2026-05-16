@@ -95,9 +95,30 @@ def main() -> None:
             timeout=15.0,
         )
         if r.status_code == 406:
+            # Cross-check: is *any* custom schema reachable, or is PostgREST
+            # only honouring the default `public,storage,graphql_public`?
+            # We probe an obviously-non-existent table inside a known
+            # custom schema; a 404 means the schema is exposed (just no
+            # such table), a 406 means PGRST_DB_SCHEMAS isn't taking effect.
+            probe = httpx.get(
+                f"{cfg.supabase_url}rest/v1/__probe_does_not_exist__",
+                headers={
+                    "apikey": cfg.supabase_service_role_key,
+                    "Authorization": f"Bearer {cfg.supabase_service_role_key}",
+                    "Accept-Profile": "course-agent",
+                },
+                timeout=15.0,
+            )
+            if probe.status_code == 406:
+                raise RuntimeError(
+                    "PostgREST 406 for schema 'course-agent'. The env var "
+                    "PGRST_DB_SCHEMAS is set in Coolify but isn't reaching "
+                    "the supabase-rest container — check env inside that "
+                    "container with `env | grep PGRST_DB_SCHEMAS`."
+                )
             raise RuntimeError(
-                "PostgREST 406 — schema 'course-agent' is not exposed. "
-                "Add it to PGRST_DB_SCHEMAS and restart the stack."
+                "PostgREST 406 — schema 'course-agent' is not in the "
+                "db-schemas list, but other schemas seem fine."
             )
         if r.status_code == 404:
             raise RuntimeError(
