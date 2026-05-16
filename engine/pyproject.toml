@@ -7,10 +7,14 @@ authors = [
     { name = "Edstellar Marketing", email = "vijay@edstellar.com" },
 ]
 requires-python = ">=3.13"
-dependencies = []
+dependencies = [
+    "httpx>=0.28.1",
+    "pydantic-settings>=2.14.1",
+]
 
 [project.scripts]
 engine = "engine:main"
+smoke = "engine.scripts.smoke_test:main"
 
 [build-system]
 requires = ["uv_build>=0.9.21,<0.10.0"]
