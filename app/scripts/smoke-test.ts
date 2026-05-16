@@ -74,25 +74,44 @@ function buildChecks(e: ReturnType<typeof env>): Check[] {
             secret: e.GAS_EMAIL_SHARED_SECRET,
           });
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          // Accept either `ok` or `success` — different GAS implementations
+          // pick different conventions. The contract that matters is: 2xx +
+          // some truthy success signal in the body.
           const json = (await res.json().catch(() => null)) as
-            | { ok?: boolean }
+            | { ok?: boolean; success?: boolean }
             | null;
-          if (!json?.ok) throw new Error(`unexpected body: ${JSON.stringify(json)}`);
+          if (!(json?.ok || json?.success)) {
+            throw new Error(`unexpected body: ${JSON.stringify(json)}`);
+          }
         },
       },
       {
         name: "GAS email webhook rejects requests without the secret",
         required: true,
         async run() {
+          // Apps Script doPost can't set real HTTP status codes via
+          // ContentService — every response is 200. So the "rejected"
+          // signal is the body shape: { error: "unauthorized" } from the
+          // hardened doPost in docs/gas-email-relay.md.
           const res = await postJson(e.GAS_EMAIL_WEBHOOK_URL!, {
             to: SINK,
             subject: "should not arrive",
             html: "x",
             secret: "wrong-secret",
           });
-          if (res.status !== 401) {
+          const json = (await res.json().catch(() => null)) as
+            | { ok?: boolean; success?: boolean; error?: string }
+            | null;
+          // Hard fail: the request was treated as successful.
+          if (json?.ok || json?.success) {
             throw new Error(
-              `expected 401, got ${res.status} — the GAS doPost is not enforcing the shared secret`,
+              "GAS doPost accepted a request with a wrong secret — the shared-secret check is missing. " +
+                "Replace the script with the version in docs/gas-email-relay.md.",
+            );
+          }
+          if (!json?.error) {
+            throw new Error(
+              `unexpected body — expected an error envelope: ${JSON.stringify(json)}`,
             );
           }
         },
