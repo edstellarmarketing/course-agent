@@ -3,33 +3,51 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
-import { AddCategoryModal, type NewCategoryDraft } from "@/components/add-category-modal";
 import { CategoryCell } from "@/components/category-cell";
+import {
+  CategoryFormModal,
+  type CategoryDraft,
+} from "@/components/category-form-modal";
 import { PageHeader } from "@/components/page-header";
 import { underSupplyScore } from "@/lib/mock/categories";
 import type { Category } from "@/lib/types";
 
 interface CategoriesViewProps {
   seedCategories: Category[];
-  /** Only admins see the "Add category" affordance. */
+  /** Only admins see the Add / Edit affordances. */
   canEdit: boolean;
 }
 
+type FormState =
+  | { mode: "closed" }
+  | { mode: "add" }
+  | { mode: "edit"; target: Category };
+
 /**
  * Renders the 43-category heatmap and (for admins) lets new categories be
- * added on the fly. Phase 4 will replace the local state with a Server
- * Action that writes to `course-agent.categories` and revalidates this
- * route — at which point this component returns to being a thin Client
- * Island over server-fetched data.
+ * added or existing categories be edited. Phase 4 will replace the local
+ * state with Server Actions that upsert into `course-agent.categories`
+ * and revalidate this route — the modal already calls a single
+ * `onSubmit(draft)` callback, so the swap is mechanical.
  */
 export function CategoriesView({
   seedCategories,
   canEdit,
 }: CategoriesViewProps) {
   const [added, setAdded] = useState<Category[]>([]);
-  const [modalOpen, setModalOpen] = useState(false);
+  /** Per-id overrides applied to seed + added categories. */
+  const [edits, setEdits] = useState<Record<string, CategoryDraft>>({});
+  const [form, setForm] = useState<FormState>({ mode: "closed" });
 
-  const all = useMemo(() => [...seedCategories, ...added], [seedCategories, added]);
+  const applyEdits = (c: Category): Category => {
+    const override = edits[c.id];
+    return override ? { ...c, ...override } : c;
+  };
+
+  const all = useMemo(
+    () => [...seedCategories.map(applyEdits), ...added.map(applyEdits)],
+    [seedCategories, added, edits], // eslint-disable-line react-hooks/exhaustive-deps
+  );
 
   const scored = useMemo(
     () =>
@@ -41,15 +59,26 @@ export function CategoriesView({
 
   const maxScore = scored[0]?.score ?? 0;
   const pinnedCount = all.filter((c) => c.isPinned).length;
+  const editedCount = Object.keys(edits).length;
 
-  const handleAdd = (draft: NewCategoryDraft) => {
-    const fresh: Category = {
-      ...draft,
-      id: `local-${crypto.randomUUID()}`,
-      courseCount: 0,
-    };
-    setAdded((prev) => [...prev, fresh]);
+  const handleSubmit = (draft: CategoryDraft) => {
+    if (form.mode === "edit") {
+      setEdits((prev) => ({ ...prev, [form.target.id]: draft }));
+    } else if (form.mode === "add") {
+      const fresh: Category = {
+        ...draft,
+        id: `local-${crypto.randomUUID()}`,
+        courseCount: 0,
+      };
+      setAdded((prev) => [...prev, fresh]);
+    }
   };
+
+  // Names to dedupe against when adding — exclude the one being edited so
+  // the form doesn't flag itself.
+  const existingNames = all
+    .filter((c) => !(form.mode === "edit" && c.id === form.target.id))
+    .map((c) => c.name);
 
   return (
     <>
@@ -62,7 +91,7 @@ export function CategoriesView({
             {canEdit && (
               <button
                 type="button"
-                onClick={() => setModalOpen(true)}
+                onClick={() => setForm({ mode: "add" })}
                 className="rounded-md border border-gray-200 bg-white px-3.5 py-2 text-sm font-medium text-navy-deep transition-colors hover:border-navy hover:bg-navy-soft"
               >
                 + Add category
@@ -79,14 +108,23 @@ export function CategoriesView({
       />
 
       <div className="flex-1 space-y-4 px-8 py-8">
-        {added.length > 0 && (
+        {(added.length > 0 || editedCount > 0) && (
           <div className="rounded-md border border-orange-light/40 bg-orange-pale px-4 py-3 text-sm text-orange">
             <span className="font-display text-[11px] font-semibold uppercase tracking-widest">
               Session-only ·
             </span>{" "}
-            You&rsquo;ve added {added.length} categor{added.length === 1 ? "y" : "ies"} this
-            session. Phase 4 wires the Add button to a Server Action that
-            persists to <code className="rounded bg-white px-1 font-mono text-[11px]">course-agent.categories</code>.
+            {added.length > 0 && (
+              <>
+                {added.length} added{editedCount > 0 ? " · " : ""}
+              </>
+            )}
+            {editedCount > 0 && (
+              <>
+                {editedCount} edited
+              </>
+            )}
+            . Phase 4 wires the Add/Edit form to a Server Action that persists
+            to <code className="rounded bg-white px-1 font-mono text-[11px]">course-agent.categories</code>.
           </div>
         )}
 
@@ -101,6 +139,11 @@ export function CategoriesView({
           <div className="text-xs text-gray-500">
             <span className="font-display font-semibold text-orange">◆</span>{" "}
             {pinnedCount} pinned by admins (boosted in agent targeting)
+            {canEdit && (
+              <span className="ml-3 text-gray-400">
+                Hover any cell to edit
+              </span>
+            )}
           </div>
         </div>
 
@@ -111,17 +154,25 @@ export function CategoriesView({
               category={category}
               underSupplyScore={score}
               maxScore={maxScore}
+              onEdit={
+                canEdit
+                  ? () => setForm({ mode: "edit", target: category })
+                  : undefined
+              }
             />
           ))}
         </div>
       </div>
 
-      <AddCategoryModal
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
-        existingNames={all.map((c) => c.name)}
-        onSubmit={handleAdd}
-      />
+      {form.mode !== "closed" && (
+        <CategoryFormModal
+          key={form.mode === "edit" ? `edit-${form.target.id}` : "add"}
+          onClose={() => setForm({ mode: "closed" })}
+          initialValues={form.mode === "edit" ? form.target : undefined}
+          existingNames={existingNames}
+          onSubmit={handleSubmit}
+        />
+      )}
     </>
   );
 }

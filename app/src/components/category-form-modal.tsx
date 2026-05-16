@@ -5,48 +5,60 @@ import { useEffect, useId, useRef, useState } from "react";
 import type { Category } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-export type NewCategoryDraft = Omit<Category, "id" | "courseCount">;
+/** The editable shape — strips id + auto-managed courseCount. */
+export type CategoryDraft = Omit<Category, "id" | "courseCount">;
 
-interface AddCategoryModalProps {
-  open: boolean;
+interface CategoryFormModalProps {
   onClose: () => void;
-  /** Names already in use — used to prevent duplicates client-side. */
+  /**
+   * When provided, the form is in **edit** mode and prefills these values.
+   * When undefined, the form is in **add** mode.
+   */
+  initialValues?: Category;
+  /** Names already in use — used to prevent duplicates in add mode. */
   existingNames: string[];
   /**
-   * Persists the new category. Phase 1 hands this to a setState in the
-   * parent; Phase 4 will swap in a Server Action that writes to
+   * Persists the draft. Phase 1 hands this to setState in the parent;
+   * Phase 4 swaps in a Server Action that upserts into
    * `course-agent.categories`.
    */
-  onSubmit: (draft: NewCategoryDraft) => void;
+  onSubmit: (draft: CategoryDraft) => void;
 }
 
-export function AddCategoryModal({
-  open,
+/**
+ * Mount this component to open the modal; unmount to close. The parent
+ * controls visibility by conditionally rendering — this keeps form state
+ * out of effects (each open is a fresh mount with fresh useState).
+ */
+export function CategoryFormModal({
   onClose,
+  initialValues,
   existingNames,
   onSubmit,
-}: AddCategoryModalProps) {
+}: CategoryFormModalProps) {
+  const isEdit = initialValues != null;
   const dialogRef = useRef<HTMLDialogElement>(null);
-  const [name, setName] = useState("");
-  const [targetCount, setTargetCount] = useState<number>(30);
-  const [demandScore, setDemandScore] = useState<number>(0.5);
-  const [isPinned, setIsPinned] = useState(true);
-  const [notes, setNotes] = useState("");
+
+  const [name, setName] = useState(initialValues?.name ?? "");
+  const [targetCount, setTargetCount] = useState<number>(
+    initialValues?.targetCount ?? 30,
+  );
+  const [demandScore, setDemandScore] = useState<number>(
+    initialValues?.demandScore ?? 0.5,
+  );
+  const [isPinned, setIsPinned] = useState(initialValues?.isPinned ?? true);
+  const [notes, setNotes] = useState(initialValues?.notes ?? "");
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const errorId = useId();
 
+  // Show the native modal once on mount. The parent handles close-on-unmount.
   useEffect(() => {
-    const el = dialogRef.current;
-    if (!el) return;
-    if (open && !el.open) {
-      el.showModal();
-    } else if (!open && el.open) {
-      el.close();
-    }
-  }, [open]);
+    dialogRef.current?.showModal();
+  }, []);
 
   const trimmed = name.trim();
   const isDuplicate =
+    !isEdit &&
     trimmed.length > 0 &&
     existingNames.some((n) => n.toLowerCase() === trimmed.toLowerCase());
   const nameValid = trimmed.length >= 3 && !isDuplicate;
@@ -54,20 +66,6 @@ export function AddCategoryModal({
   const demandValid =
     Number.isFinite(demandScore) && demandScore >= 0 && demandScore <= 1;
   const isValid = nameValid && targetValid && demandValid;
-
-  const reset = () => {
-    setName("");
-    setTargetCount(30);
-    setDemandScore(0.5);
-    setIsPinned(true);
-    setNotes("");
-    setSubmitAttempted(false);
-  };
-
-  const handleClose = () => {
-    reset();
-    onClose();
-  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,7 +78,7 @@ export function AddCategoryModal({
       isPinned,
       notes: notes.trim() || null,
     });
-    handleClose();
+    onClose();
   };
 
   const errorMessage = !nameValid
@@ -95,27 +93,32 @@ export function AddCategoryModal({
         ? "Demand score should be between 0 and 1."
         : null;
 
+  const title = isEdit ? "Edit category" : "Add a category for the agent to target";
+  const eyebrow = isEdit ? "Admin · adjust targets" : "Admin · expand catalogue";
+  const submitLabel = isEdit ? "Save changes" : "Add category";
+
   return (
     <dialog
       ref={dialogRef}
-      onClose={handleClose}
+      onClose={onClose}
       className="w-full max-w-lg rounded-lg border border-gray-100 bg-white p-0 shadow-lg backdrop:bg-navy-deep/40 backdrop:backdrop-blur-sm"
-      aria-labelledby="add-category-title"
+      aria-labelledby="category-form-title"
     >
       <form onSubmit={handleSubmit}>
         <header className="border-b border-gray-100 px-6 py-5">
           <div className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-orange">
-            Admin · expand catalogue
+            {eyebrow}
           </div>
           <h2
-            id="add-category-title"
+            id="category-form-title"
             className="mt-1 font-display text-lg font-semibold text-navy-deep"
           >
-            Add a category for the agent to target
+            {title}
           </h2>
           <p className="mt-1 text-xs text-gray-500">
-            New categories start with zero courses. Pin them and the agent will
-            prioritise filling the gap on the next run.
+            {isEdit
+              ? "Adjust the target portfolio size and demand hint. The gap analyzer reads these on the next agent run."
+              : "New categories start with zero courses. Pin them and the agent will prioritise filling the gap on the next run."}
           </p>
         </header>
 
@@ -134,11 +137,13 @@ export function AddCategoryModal({
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Bioinformatics"
-              className="mt-1.5 w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-800 placeholder:text-gray-400 focus:border-navy focus:outline-none focus:ring-2 focus:ring-navy/15"
+              disabled={isEdit}
+              className="mt-1.5 w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-800 placeholder:text-gray-400 focus:border-navy focus:outline-none focus:ring-2 focus:ring-navy/15 disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-500"
             />
-            {isDuplicate && submitAttempted && (
-              <p className="mt-1 text-xs text-red-700">
-                Already in use — pick a different name.
+            {isEdit && (
+              <p className="mt-1 text-[11px] text-gray-500">
+                Renaming a category requires a data migration — disabled in the
+                UI to keep the FK from <code className="font-mono">suggestions.category</code> stable.
               </p>
             )}
           </div>
@@ -235,7 +240,7 @@ export function AddCategoryModal({
         <footer className="flex items-center justify-end gap-2 border-t border-gray-100 bg-off-white px-6 py-4">
           <button
             type="button"
-            onClick={handleClose}
+            onClick={onClose}
             className="rounded-md border border-gray-200 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
           >
             Cancel
@@ -250,7 +255,7 @@ export function AddCategoryModal({
               submitAttempted && !isValid ? errorId : undefined
             }
           >
-            Add category
+            {submitLabel}
           </button>
         </footer>
       </form>
