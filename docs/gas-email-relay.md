@@ -1,30 +1,38 @@
 # GAS email relay — hardened `doPost`
 
-Phase 2 of the build (see `phase2.md §5`) needs the existing Google Apps Script email webhook to require a shared secret. The current `doPost` accepts any caller — anyone who has the `/exec` URL can use it to send mail from the Edstellar Gmail.
+Phase 2 of the build (see `phase2.md §5`) needs a Google Apps Script email webhook that requires a shared secret. The previous Edstellar GAS endpoint accepts any caller — anyone with the `/exec` URL can send mail through it.
+
+> **Don't modify the existing script.** Create a **new Apps Script project** dedicated to course-agent.
+>
+> The existing script is in use by other projects whose callers don't send a `secret` field. Hardening the existing `doPost` would break them silently. Isolating the script for course-agent also means: per-project secret rotation, independent `/exec` URLs, and clean execution logs when something fails at 3am.
+>
+> The Gmail/Workspace daily-send quota is **per-account**, not per-script, so a new project doesn't get you more headroom — it gets you cleaner separation. Same sender, separate code.
 
 ## What to do
 
-1. Open the script that hosts the existing webhook in the Apps Script editor.
-2. Replace `doPost` (and add the helpers below) with the code in **`Code.gs`** at the bottom of this doc.
-3. Generate a 32-char secret:
+1. Go to <https://script.google.com> while signed in as the sender account.
+2. **New project** → name it `Course-Agent Email Relay`.
+3. Paste the code in **`Code.gs`** at the bottom of this doc, replacing the default `myFunction` stub.
+4. Generate a 32-char secret:
    ```bash
    openssl rand -hex 16
    ```
-4. In the Apps Script project: **Project Settings → Script properties → Add property**
+5. In the project: **Project Settings → Script properties → Add property**
    - Key: `SHARED_SECRET`
    - Value: paste the secret you just generated.
-5. **Deploy → Manage deployments → New deployment → Web app.**
+6. **Deploy → New deployment → Web app.**
    - Execute as: *Me* (or whichever account owns the sender mailbox).
    - Who has access: *Anyone* (this URL is a secret + the body needs the shared secret).
-6. Copy the new `/exec` URL.
-7. In `app/.env.local`:
+   - **Click Authorise** when prompted — you're granting the new project permission to send mail on your behalf.
+7. Copy the new `/exec` URL — this is your course-agent-only relay URL.
+8. In `app/.env.local`:
    ```
    GAS_EMAIL_WEBHOOK_URL=<the new /exec URL>
    GAS_EMAIL_SHARED_SECRET=<the same secret you put in Script Properties>
    ```
-8. Run `pnpm --dir app smoke` — both GAS checks should turn green.
+9. Run `pnpm --dir app smoke` — both GAS checks should turn green.
 
-> **Note on redeploys:** every time you click *New deployment*, Apps Script issues a new `/exec` URL. *Manage deployments → Edit* and bump the version on the same deployment to keep the URL stable.
+> **Note on future redeploys:** every time you click *New deployment*, Apps Script issues a new `/exec` URL. Once you have a working URL in env, use *Manage deployments → Edit → New version → Deploy* to publish changes against the **same** URL.
 
 ## Why this matters
 
