@@ -21,13 +21,21 @@ const serverSchema = z.object({
     .string()
     .min(40, "service-role keys are at least 40 chars"),
 
-  GAS_EMAIL_WEBHOOK_URL: z.string().url("must be a valid URL"),
+  // GAS email relay — required by the Phase 7 digest job. Optional here so
+  // Phase 2 can pass before the doPost-with-shared-secret hardening lands.
+  GAS_EMAIL_WEBHOOK_URL: z
+    .string()
+    .url("must be a valid URL")
+    .optional()
+    .or(z.literal("")),
   GAS_EMAIL_SHARED_SECRET: z
     .string()
-    .min(16, "use at least 16 chars — `openssl rand -hex 16` is fine"),
+    .min(16, "use at least 16 chars — `openssl rand -hex 16` is fine")
+    .optional()
+    .or(z.literal("")),
 
-  SLACK_WEBHOOK_URL: z.string().url().optional(),
-  SENTRY_DSN: z.string().url().optional(),
+  SLACK_WEBHOOK_URL: z.string().url().optional().or(z.literal("")),
+  SENTRY_DSN: z.string().url().optional().or(z.literal("")),
 });
 
 const clientSchema = z.object({

@@ -30,6 +30,14 @@ from pydantic import ValidationError
 
 from engine.config import settings
 
+# Windows' default console code page (cp1252) can't render the ✓/✗ glyphs we
+# use in pass/fail lines. Forcing UTF-8 keeps the output identical across
+# Windows, macOS, and Linux without falling back to ASCII-only.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")  # type: ignore[attr-defined]
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8")  # type: ignore[attr-defined]
+
 
 # DeepSeek slug used by the smoke test — matches the
 # DEFAULT_MODEL_ASSIGNMENTS in app/src/lib/mock/llm-models.ts.
