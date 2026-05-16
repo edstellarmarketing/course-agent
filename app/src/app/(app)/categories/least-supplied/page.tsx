@@ -1,17 +1,46 @@
 import Link from "next/link";
 
 import { PageHeader } from "@/components/page-header";
-import {
-  mockCategories,
-  underSupplyScore,
-} from "@/lib/mock/categories";
+import { underSupplyScore } from "@/lib/mock/categories";
+import { createSessionClient } from "@/lib/supabase/server-with-session";
+import type { Category } from "@/lib/types";
 
 export const metadata = {
   title: "Least Supplied · Course Agent",
 };
 
-export default function LeastSuppliedPage() {
-  const ranked = mockCategories
+// Mirrors the /categories opt-out so admin pins on the heatmap show up
+// in the ranking immediately on the next nav.
+export const dynamic = "force-dynamic";
+
+interface CategoryRow {
+  id: string;
+  name: string;
+  course_count: number | null;
+  target_count: number | null;
+  demand_score: number | null;
+  is_pinned: boolean | null;
+  notes: string | null;
+}
+
+export default async function LeastSuppliedPage() {
+  const supabase = await createSessionClient();
+
+  const { data } = await supabase
+    .from("categories_with_counts")
+    .select("id,name,course_count,target_count,demand_score,is_pinned,notes");
+
+  const categories: Category[] = ((data ?? []) as CategoryRow[]).map((c) => ({
+    id: c.id,
+    name: c.name,
+    courseCount: c.course_count ?? 0,
+    targetCount: c.target_count,
+    demandScore: c.demand_score,
+    isPinned: c.is_pinned ?? false,
+    notes: c.notes,
+  }));
+
+  const ranked = categories
     .map((c) => ({
       category: c,
       score: underSupplyScore(c),

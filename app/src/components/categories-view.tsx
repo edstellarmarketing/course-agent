@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useState, useTransition } from "react";
 
+import { upsertCategory } from "@/app/(app)/categories/actions";
 import { CategoryCell } from "@/components/category-cell";
 import {
   CategoryFormModal,
@@ -24,59 +25,55 @@ type FormState =
   | { mode: "edit"; target: Category };
 
 /**
- * Renders the 43-category heatmap and (for admins) lets new categories be
- * added or existing categories be edited. Phase 4 will replace the local
- * state with Server Actions that upsert into `course-agent.categories`
- * and revalidate this route — the modal already calls a single
- * `onSubmit(draft)` callback, so the swap is mechanical.
+ * Renders the heatmap of all categories. Admins can add new categories
+ * and edit existing ones — both flows hit the `upsertCategory` Server
+ * Action which writes to `course-agent.categories` and revalidates this
+ * route. RLS enforces admin-only writes server-side; the `canEdit` prop
+ * only controls the UI affordance.
+ *
+ * The mock `underSupplyScore` algorithm still drives the heat colours
+ * because real `target_count` + `demand_score` are null until admins
+ * fill them in — the heatmap will gradient up as those columns get
+ * populated.
  */
 export function CategoriesView({
   seedCategories,
   canEdit,
 }: CategoriesViewProps) {
-  const [added, setAdded] = useState<Category[]>([]);
-  /** Per-id overrides applied to seed + added categories. */
-  const [edits, setEdits] = useState<Record<string, CategoryDraft>>({});
   const [form, setForm] = useState<FormState>({ mode: "closed" });
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
 
-  const applyEdits = (c: Category): Category => {
-    const override = edits[c.id];
-    return override ? { ...c, ...override } : c;
-  };
-
-  const all = useMemo(
-    () => [...seedCategories.map(applyEdits), ...added.map(applyEdits)],
-    [seedCategories, added, edits], // eslint-disable-line react-hooks/exhaustive-deps
-  );
-
-  const scored = useMemo(
-    () =>
-      all
-        .map((c) => ({ category: c, score: underSupplyScore(c) }))
-        .sort((a, b) => b.score - a.score),
-    [all],
-  );
+  const scored = seedCategories
+    .map((c) => ({ category: c, score: underSupplyScore(c) }))
+    .sort((a, b) => b.score - a.score);
 
   const maxScore = scored[0]?.score ?? 0;
-  const pinnedCount = all.filter((c) => c.isPinned).length;
-  const editedCount = Object.keys(edits).length;
+  const pinnedCount = seedCategories.filter((c) => c.isPinned).length;
 
   const handleSubmit = (draft: CategoryDraft) => {
-    if (form.mode === "edit") {
-      setEdits((prev) => ({ ...prev, [form.target.id]: draft }));
-    } else if (form.mode === "add") {
-      const fresh: Category = {
-        ...draft,
-        id: `local-${crypto.randomUUID()}`,
-        courseCount: 0,
-      };
-      setAdded((prev) => [...prev, fresh]);
-    }
+    setError(null);
+    const id = form.mode === "edit" ? form.target.id : undefined;
+    startTransition(async () => {
+      const res = await upsertCategory(
+        {
+          name: draft.name,
+          targetCount: draft.targetCount,
+          demandScore: draft.demandScore,
+          isPinned: draft.isPinned,
+          notes: draft.notes,
+        },
+        id,
+      );
+      if (!res.ok) {
+        setError(res.error);
+        return;
+      }
+      setForm({ mode: "closed" });
+    });
   };
 
-  // Names to dedupe against when adding — exclude the one being edited so
-  // the form doesn't flag itself.
-  const existingNames = all
+  const existingNames = seedCategories
     .filter((c) => !(form.mode === "edit" && c.id === form.target.id))
     .map((c) => c.name);
 
@@ -85,13 +82,16 @@ export function CategoriesView({
       <PageHeader
         eyebrow="Catalogue"
         title="Coverage Heatmap"
-        description={`All ${all.length} categories, colour-graded by under-supply (gap × demand × pin boost). Click any cell to filter the inventory.`}
+        description={`All ${seedCategories.length} categories, colour-graded by under-supply (gap × demand × pin boost). Click any cell to filter the inventory.`}
         actions={
           <div className="flex items-center gap-2">
             {canEdit && (
               <button
                 type="button"
-                onClick={() => setForm({ mode: "add" })}
+                onClick={() => {
+                  setError(null);
+                  setForm({ mode: "add" });
+                }}
                 className="rounded-md border border-gray-200 bg-white px-3.5 py-2 text-sm font-medium text-navy-deep transition-colors hover:border-navy hover:bg-navy-soft"
               >
                 + Add category
@@ -108,23 +108,12 @@ export function CategoriesView({
       />
 
       <div className="flex-1 space-y-4 px-8 py-8">
-        {(added.length > 0 || editedCount > 0) && (
-          <div className="rounded-md border border-orange-light/40 bg-orange-pale px-4 py-3 text-sm text-orange">
-            <span className="font-display text-[11px] font-semibold uppercase tracking-widest">
-              Session-only ·
-            </span>{" "}
-            {added.length > 0 && (
-              <>
-                {added.length} added{editedCount > 0 ? " · " : ""}
-              </>
-            )}
-            {editedCount > 0 && (
-              <>
-                {editedCount} edited
-              </>
-            )}
-            . Phase 4 wires the Add/Edit form to a Server Action that persists
-            to <code className="rounded bg-white px-1 font-mono text-[11px]">course-agent.categories</code>.
+        {error && (
+          <div
+            role="alert"
+            className="rounded-md border border-red-200 bg-red-soft px-4 py-3 text-sm text-red-700"
+          >
+            {error}
           </div>
         )}
 
@@ -156,7 +145,10 @@ export function CategoriesView({
               maxScore={maxScore}
               onEdit={
                 canEdit
-                  ? () => setForm({ mode: "edit", target: category })
+                  ? () => {
+                      setError(null);
+                      setForm({ mode: "edit", target: category });
+                    }
                   : undefined
               }
             />

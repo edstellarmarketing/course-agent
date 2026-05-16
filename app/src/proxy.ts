@@ -11,10 +11,13 @@ import { env } from "@/lib/env";
  *   - `PUBLIC_PATHS` boot without a session (login + OAuth callback).
  *   - Every other route requires a signed-in user; otherwise we
  *     bounce to `/login`.
- *   - `ADMIN_PATHS` additionally require `app_metadata.role === "admin"`
- *     in the user's JWT; non-admins land on `/403`.
+ *   - `ADMIN_PATHS` additionally require
+ *     `app_metadata.course_agent_role === "admin"` in the user's JWT;
+ *     non-admins land on `/403`. The key is namespaced because this
+ *     Supabase is shared with sibling apps (Marketing-PM-Tool, eggdrop,
+ *     trainerportal) — a bare `role` key would collide.
  *
- * The `app_metadata.role` field is server-set (service-role only) and
+ * The `app_metadata` field is server-set (service-role only) and
  * therefore trustworthy — never read role from `user_metadata`, which
  * a user can edit via the standard Auth API.
  *

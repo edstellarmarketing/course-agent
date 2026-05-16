@@ -20,7 +20,11 @@ export type SuggestionStatus =
 /** Reviewer decision recorded in the `feedback` table. */
 export type FeedbackDecision = "approved" | "rejected" | "needs_revision";
 
-/** Edstellar role, set in `auth.users.app_metadata.role` (Phase 3). */
+/**
+ * Edstellar role for the course-agent app. Stored at
+ * `auth.users.app_metadata.course_agent_role` (server-set; namespaced
+ * because this Supabase is shared with sibling apps).
+ */
 export type UserRole = "admin" | "reviewer";
 
 /**

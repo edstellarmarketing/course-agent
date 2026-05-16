@@ -1,41 +1,105 @@
 import Link from "next/link";
 
 import { PageHeader } from "@/components/page-header";
-import { mockCategories } from "@/lib/mock/categories";
-import { mockCourseCount, mockCourses } from "@/lib/mock/courses";
+import { createSessionClient } from "@/lib/supabase/server-with-session";
 
 export const metadata = {
   title: "Course Inventory · Course Agent",
 };
 
+const PAGE_SIZE = 50;
+
 interface InventoryPageProps {
-  searchParams: Promise<{ q?: string; category?: string }>;
+  searchParams: Promise<{
+    q?: string;
+    category?: string;
+    page?: string;
+  }>;
 }
 
-export default async function InventoryPage({ searchParams }: InventoryPageProps) {
-  const { q = "", category = "all" } = await searchParams;
-  const normalisedQ = q.trim().toLowerCase();
+type CourseRow = {
+  id: string;
+  num: number | null;
+  name: string;
+  category: string;
+  subcategory: string | null;
+  link: string | null;
+  updated_at: string;
+};
 
-  const filtered = mockCourses.filter((c) => {
-    if (category !== "all" && c.category !== category) return false;
-    if (!normalisedQ) return true;
-    return (
-      c.name.toLowerCase().includes(normalisedQ) ||
-      (c.subcategory ?? "").toLowerCase().includes(normalisedQ) ||
-      c.category.toLowerCase().includes(normalisedQ)
+type CategoryRow = { name: string };
+
+export default async function InventoryPage({ searchParams }: InventoryPageProps) {
+  const params = await searchParams;
+  const q = (params.q ?? "").trim();
+  const category = params.category ?? "all";
+  const page = Math.max(1, Number.parseInt(params.page ?? "1", 10) || 1);
+
+  const supabase = await createSessionClient();
+
+  // Categories for the dropdown — small list (43 rows), pulled once.
+  const categoriesQuery = supabase
+    .from("categories")
+    .select("name")
+    .order("name");
+
+  // Paginated rows. PostgREST returns an exact total count when we ask
+  // for `count: "exact"`; that drives the result footer + page-count.
+  let rowsQuery = supabase
+    .from("courses")
+    .select("id,num,name,category,subcategory,link,updated_at", {
+      count: "exact",
+    })
+    .order("num", { ascending: true })
+    .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
+
+  if (category !== "all") {
+    rowsQuery = rowsQuery.eq("category", category);
+  }
+  if (q) {
+    // ilike-OR across name + subcategory + category. The pattern needs
+    // to be PostgREST-safe (no commas inside) — escape any commas.
+    const safe = q.replace(/,/g, " ");
+    rowsQuery = rowsQuery.or(
+      `name.ilike.%${safe}%,subcategory.ilike.%${safe}%,category.ilike.%${safe}%`,
     );
-  });
+  }
+
+  const [categoriesRes, rowsRes] = await Promise.all([
+    categoriesQuery,
+    rowsQuery,
+  ]);
+
+  const categories = (categoriesRes.data ?? []) as CategoryRow[];
+  const rows = (rowsRes.data ?? []) as CourseRow[];
+  const total = rowsRes.count ?? rows.length;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const hasFilters = Boolean(q) || category !== "all";
+
+  // Build pagination URLs that preserve current filters.
+  const pageHref = (n: number) => {
+    const sp = new URLSearchParams();
+    if (q) sp.set("q", q);
+    if (category !== "all") sp.set("category", category);
+    sp.set("page", String(n));
+    return `/inventory?${sp.toString()}`;
+  };
 
   return (
     <>
       <PageHeader
         eyebrow="Catalogue"
         title="Course Inventory"
-        description={`${mockCourseCount.toLocaleString()} courses live in the catalogue. ${mockCourses.length} loaded in this Phase 1 mock slice.`}
+        description={`${total.toLocaleString()} ${
+          hasFilters ? "matching " : ""
+        }courses in the catalogue.`}
       />
 
       <div className="flex-1 space-y-4 px-8 py-8">
-        <form method="get" className="flex flex-wrap items-end gap-3 rounded-lg border border-gray-100 bg-white p-4">
+        <form
+          method="get"
+          className="flex flex-wrap items-end gap-3 rounded-lg border border-gray-100 bg-white p-4"
+        >
           <div className="flex-1 min-w-[240px]">
             <label
               htmlFor="q"
@@ -67,8 +131,8 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
               className="mt-1.5 w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-800 focus:border-navy focus:outline-none focus:ring-2 focus:ring-navy/15"
             >
               <option value="all">All categories</option>
-              {mockCategories.map((c) => (
-                <option key={c.id} value={c.name}>
+              {categories.map((c) => (
+                <option key={c.name} value={c.name}>
                   {c.name}
                 </option>
               ))}
@@ -81,7 +145,7 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
           >
             Filter
           </button>
-          {(q || category !== "all") && (
+          {hasFilters && (
             <Link
               href="/inventory"
               className="rounded-md border border-gray-200 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
@@ -92,20 +156,20 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
         </form>
 
         <div className="rounded-lg border border-gray-100 bg-white">
-          <header className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
+          <header className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 px-6 py-4">
             <div className="text-sm text-gray-500">
               <span className="font-display text-base font-semibold text-navy-deep">
-                {filtered.length}
+                {total.toLocaleString()}
               </span>{" "}
-              of {mockCourses.length} courses{q && ` matching “${q}”`}
+              courses{q && ` matching “${q}”`}
               {category !== "all" && ` in ${category}`}
             </div>
-            <div className="font-display text-[10px] font-semibold uppercase tracking-widest text-gray-400">
-              read-only · admin edit comes in Phase 4
+            <div className="font-mono text-xs text-gray-500">
+              Page {page} of {totalPages}
             </div>
           </header>
 
-          {filtered.length === 0 ? (
+          {rows.length === 0 ? (
             <p className="px-6 py-16 text-center text-sm text-gray-500">
               No courses match. Try a broader search or clear the filter.
             </p>
@@ -121,12 +185,14 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((c) => (
+                {rows.map((c) => (
                   <tr
                     key={c.id}
                     className="border-t border-gray-100 hover:bg-off-white"
                   >
-                    <td className="px-6 py-3 font-mono text-xs text-gray-500">{c.num}</td>
+                    <td className="px-6 py-3 font-mono text-xs text-gray-500">
+                      {c.num ?? "—"}
+                    </td>
                     <td className="px-6 py-3">
                       {c.link ? (
                         <a
@@ -142,9 +208,11 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
                       )}
                     </td>
                     <td className="px-6 py-3 text-gray-700">{c.category}</td>
-                    <td className="px-6 py-3 text-gray-500">{c.subcategory ?? "—"}</td>
+                    <td className="px-6 py-3 text-gray-500">
+                      {c.subcategory ?? "—"}
+                    </td>
                     <td className="px-6 py-3 font-mono text-xs text-gray-500">
-                      {new Date(c.updatedAt).toLocaleDateString([], {
+                      {new Date(c.updated_at).toLocaleDateString([], {
                         year: "numeric",
                         month: "short",
                         day: "numeric",
@@ -154,6 +222,41 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
                 ))}
               </tbody>
             </table>
+          )}
+
+          {totalPages > 1 && (
+            <footer className="flex items-center justify-between border-t border-gray-100 px-6 py-3 text-sm">
+              <div className="text-gray-500">
+                Showing rows {(page - 1) * PAGE_SIZE + 1}–
+                {Math.min(page * PAGE_SIZE, total)} of {total.toLocaleString()}
+              </div>
+              <div className="flex items-center gap-2">
+                {page > 1 ? (
+                  <Link
+                    href={pageHref(page - 1)}
+                    className="rounded-md border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                  >
+                    ← Previous
+                  </Link>
+                ) : (
+                  <span className="rounded-md border border-gray-100 px-3 py-1.5 text-sm font-medium text-gray-300">
+                    ← Previous
+                  </span>
+                )}
+                {page < totalPages ? (
+                  <Link
+                    href={pageHref(page + 1)}
+                    className="rounded-md border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                  >
+                    Next →
+                  </Link>
+                ) : (
+                  <span className="rounded-md border border-gray-100 px-3 py-1.5 text-sm font-medium text-gray-300">
+                    Next →
+                  </span>
+                )}
+              </div>
+            </footer>
           )}
         </div>
       </div>

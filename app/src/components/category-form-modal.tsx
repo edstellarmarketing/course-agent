@@ -78,7 +78,10 @@ export function CategoryFormModal({
       isPinned,
       notes: notes.trim() || null,
     });
-    onClose();
+    // Don't call onClose() here — the parent owns close timing now.
+    // On a successful Server Action the parent unmounts this modal by
+    // flipping form.mode to "closed"; on failure it keeps us mounted
+    // so the user can see the error and retry without losing input.
   };
 
   const errorMessage = !nameValid
@@ -182,7 +185,7 @@ export function CategoryFormModal({
                 type="number"
                 min={0}
                 max={1}
-                step={0.05}
+                step="any"
                 value={demandScore}
                 onChange={(e) => setDemandScore(Number(e.target.value))}
                 className="mt-1.5 w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-800 focus:border-navy focus:outline-none focus:ring-2 focus:ring-navy/15"
