@@ -25,9 +25,11 @@ from datetime import UTC, datetime
 from importlib.resources import files
 from typing import Any
 
+import httpx
 import numpy as np
 
 from engine.agent.state import AgentState
+from engine.config import settings
 from engine.llm.voyage import embed_one
 from engine.supabase import supabase
 
@@ -200,4 +202,78 @@ def run(state: AgentState) -> AgentState:
         inserted,
         ledger.total_usd if ledger else 0.0,
     )
+
+    # Phase 7 — fire-and-forget notifications. Failures here are
+    # warnings, never fatal — a successful run with a flaky
+    # notification is still a successful run.
+    _notify_app(run_id)
+    _notify_slack(run_id, persisted=inserted, targeted=targeted)
+
     return {"run_id": run_id, "prompt_version_id": prompt_version_id}
+
+
+def _notify_app(run_id: str) -> None:
+    """POST to the Next.js /api/internal/run-complete webhook.
+
+    No-op when either INTERNAL_WEBHOOK_URL or INTERNAL_WEBHOOK_SECRET
+    is unset — keeps local dev frictionless. Failures are logged as
+    warnings; the run continues regardless.
+    """
+    cfg = settings()
+    if not cfg.internal_webhook_url or not cfg.internal_webhook_secret:
+        log.info("notify skipped: INTERNAL_WEBHOOK_URL/SECRET unset")
+        return
+    try:
+        resp = httpx.post(
+            str(cfg.internal_webhook_url),
+            headers={
+                "content-type": "application/json",
+                "x-internal-webhook-secret": cfg.internal_webhook_secret,
+            },
+            json={"run_id": run_id},
+            timeout=10.0,
+        )
+        # The app's route handler always returns 200 with {ok: bool}
+        # for non-auth failures, so a 200 might still mean "the GAS
+        # relay rejected our email". Log the body in both cases so
+        # post-run audits can see what happened.
+        body_excerpt = resp.text[:240].replace("\n", " ")
+        log.info(
+            "notify webhook=%d body=%s",
+            resp.status_code,
+            body_excerpt,
+        )
+    except httpx.RequestError as exc:
+        log.warning("notify failed: %s — continuing", exc)
+
+
+def _notify_slack(
+    run_id: str, *, persisted: int, targeted: list[str]
+) -> None:
+    """POST to Slack incoming webhook. Silent skip when unset."""
+    cfg = settings()
+    if not cfg.slack_webhook_url:
+        log.info("slack skipped: SLACK_WEBHOOK_URL unset")
+        return
+    short = run_id[:8]
+    targeted_str = ", ".join(targeted) if targeted else "no categories"
+    # App URL for the deep link — prefer APP_URL env, fall back to
+    # localhost. Production deploys should set APP_URL.
+    import os
+
+    app_url = (os.environ.get("APP_URL") or "http://localhost:3000").rstrip("/")
+    text = (
+        f":sparkles: *Course Agent run complete* — `{short}`\n"
+        f"{persisted} new suggestion{'' if persisted == 1 else 's'} "
+        f"pending review in {targeted_str}.\n"
+        f"<{app_url}/suggestions/today|Review now →>"
+    )
+    try:
+        resp = httpx.post(
+            str(cfg.slack_webhook_url),
+            json={"text": text},
+            timeout=5.0,
+        )
+        log.info("slack webhook=%d", resp.status_code)
+    except httpx.RequestError as exc:
+        log.warning("slack failed: %s — continuing", exc)

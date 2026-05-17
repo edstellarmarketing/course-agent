@@ -34,6 +34,17 @@ const serverSchema = z.object({
     .optional()
     .or(z.literal("")),
 
+  // Phase 7 — engine → app webhook auth. Required for the
+  // /api/internal/run-complete route handler to accept POSTs.
+  // Optional in the schema so the app can boot in dev before the
+  // engine side is wired; the route handler returns 401 if it's
+  // empty at request time.
+  INTERNAL_WEBHOOK_SECRET: z
+    .string()
+    .min(16, "use at least 16 chars — `openssl rand -hex 16` is fine")
+    .optional()
+    .or(z.literal("")),
+
   SLACK_WEBHOOK_URL: z.string().url().optional().or(z.literal("")),
   SENTRY_DSN: z.string().url().optional().or(z.literal("")),
 });

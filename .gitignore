@@ -51,3 +51,6 @@ pnpm-debug.log*
 
 # ─── Ad-hoc verification screenshots at repo root ─────────────
 /phase*-*.png
+
+# ─── Email-template preview output (Phase 7 Step 2) ───────────
+app/.preview-emails/

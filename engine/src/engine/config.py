@@ -17,7 +17,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 
-from pydantic import Field, HttpUrl
+from pydantic import Field, HttpUrl, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -80,6 +80,43 @@ class EngineSettings(BaseSettings):
         alias="ENGINE_RUN_COST_CEILING_USD",
         description="Hard per-run spend cap, in USD.",
     )
+
+    # ── Phase 7 — run-complete webhooks ──────────────────────────────
+    # Optional. If either internal_webhook_* is missing, the engine
+    # logs a single "notify skipped" line and continues — the run
+    # itself never fails because a notification couldn't fire.
+    internal_webhook_url: HttpUrl | None = Field(
+        default=None,
+        alias="INTERNAL_WEBHOOK_URL",
+        description="Next.js /api/internal/run-complete URL.",
+    )
+    internal_webhook_secret: str | None = Field(
+        default=None,
+        alias="INTERNAL_WEBHOOK_SECRET",
+        min_length=16,
+        description="Shared secret for the engine→app webhook header.",
+    )
+    slack_webhook_url: HttpUrl | None = Field(
+        default=None,
+        alias="SLACK_WEBHOOK_URL",
+        description="Slack incoming-webhook URL for run-complete pings.",
+    )
+
+    # Treat empty / whitespace-only env values as None for the
+    # optional URL fields. Without this, a stray `SLACK_WEBHOOK_URL=`
+    # in .env trips pydantic's URL validator before the engine can
+    # tell us it's an optional setting.
+    @field_validator(
+        "internal_webhook_url",
+        "slack_webhook_url",
+        "langfuse_host",
+        mode="before",
+    )
+    @classmethod
+    def _blank_url_to_none(cls, v: object) -> object:
+        if isinstance(v, str) and v.strip() == "":
+            return None
+        return v
 
 
 @lru_cache(maxsize=1)

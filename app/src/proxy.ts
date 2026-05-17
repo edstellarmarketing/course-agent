@@ -26,7 +26,12 @@ import { env } from "@/lib/env";
  * the refreshed cookie rides back to the browser when we return.
  */
 
-const PUBLIC_PATHS = ["/login", "/auth/callback"];
+// `/api/internal/*` is server-to-server only and carries its own
+// header-secret auth (constant-time check inside the route handler).
+// Letting it past the session gate is what allows the engine to POST
+// without a user cookie. Routes under this prefix are responsible
+// for their own auth — never serve user-scoped data here.
+const PUBLIC_PATHS = ["/login", "/auth/callback", "/api/internal"];
 const ADMIN_PATHS = ["/learning", "/settings"];
 
 export async function proxy(req: NextRequest) {
