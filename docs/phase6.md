@@ -529,33 +529,176 @@ Should complete in <10 min and persist 5 suggestions. Then:
 
 ## Done means
 
-- [ ] All dependencies added to `pyproject.toml`; `uv sync` clean.
-- [ ] `engine/src/engine/agent/`, `engine/src/engine/rules/`,
+- [x] All dependencies added to `pyproject.toml`; `uv sync` clean.
+- [x] `engine/src/engine/agent/`, `engine/src/engine/rules/`,
       `engine/src/engine/llm/`, `engine/src/engine/prompts/` populated
       per the layout in Step 1.
-- [ ] All 10 rules implemented with unit tests; `uv run pytest` green.
-- [ ] `agent run --category X --top-k 5` produces 5–10 persisted
-      suggestions in <10 min from a clean DB.
-- [ ] `agent_runs` row populated with all 8 cost/usage columns and
+- [x] All 10 rules implemented with unit tests; `uv run pytest`
+      green (28 tests).
+- [~] `agent run --category X --top-k 5` produces 5–10 persisted
+      suggestions in <10 min from a clean DB. *Partial — three live
+      runs persisted 1, 3, and 3 candidates respectively (top-k of 1,
+      1, 2). Low survival driven by an overly strict Rule 7 reference
+      verifier; see Phase 8 backlog item #1.*
+- [x] `agent_runs` row populated with all 8 cost/usage columns and
       a real `prompt_version_id`.
-- [ ] At least one cert-name catch demonstrably visible in the run log.
-- [ ] Cost ceiling aborts the run when crossed; partial state is
+- [~] At least one cert-name catch demonstrably visible in the run
+      log. *Not hit live — the research system prompt is doing its
+      job and DeepSeek never proposed a cert-named title across the
+      three runs. Rule 10's three-layer logic is proved by 7 unit
+      tests instead. A forced regression test belongs in Phase 8.*
+- [x] Cost ceiling aborts the run when crossed; partial state is
       visible in `agent_runs.finished_at`.
-- [ ] Phase 5's review workflow renders + actions correctly against
+- [x] Phase 5's review workflow renders + actions correctly against
       the agent's real output.
-- [ ] Engine smoke (`uv run smoke`) still 6/6 green.
-- [ ] App smoke (`pnpm --dir app smoke`) unchanged (2/3 with known
+- [x] Engine smoke (`uv run smoke`) still 6/6 green.
+- [x] App smoke (`pnpm --dir app smoke`) unchanged (2/3 with known
       GAS issue).
-- [ ] Committed on `main` as "Phase 6: agent pipeline end-to-end".
+- [x] Committed on `main` as "Phase 6: agent pipeline end-to-end".
 
 ---
 
-## When you resume
+## Phase 6 outcomes — what actually shipped
 
-1. Open this file. Should still be on `main`.
-2. Run both smokes to confirm Phases 4 + 5 didn't drift.
-3. Confirm OpenRouter spend cap + daily budget alert in the dashboard.
-4. Start at Step 1 (deps + skeleton). Each step has a verify line;
-   if any verify fails, the step isn't done.
+Three live runs against real Supabase data persisted 7 agent-produced
+suggestions for **$0.035 total OpenRouter + Serper + Voyage spend**:
 
-Last known good commit on `main`: see `git log --oneline -5`.
+| Run | Categories | Produced | Persisted | Cost |
+|---|---|---:|---:|---:|
+| `3c44e74e` | Data Privacy and Security | 8 | 1 | $0.0057 |
+| `ee264b99` | Cybersecurity | 8 | 3 | $0.0085 |
+| `b31dfeee` | Cloud Computing, Cybersecurity | 16 | 3 | $0.0210 |
+
+All visible at `/suggestions/today` with the model name in the
+header banner and the dashboard's "candidates await review / from N
+categories targeted" tile updating live. Phase 5's approve / reject
+/ needs-revision flow works against the new rows unchanged.
+
+Commits on `main` (lowest → highest):
+`ca42893` Steps 1-3 (skeleton + inventory + gap),
+`503bcea` Step 4 (OpenRouter wrapper + ledger + Langfuse hook),
+`2eaf8a5` Step 5 (research),
+`64e77de` Steps 6-7 (10-rule engine + cert-name 3-layer),
+`73c1a49` Steps 8-10 (persistence + cost ceiling + E2E runs).
+
+### Decisions revised during execution
+
+- **ScrapeGraphAI dropped in favour of plain Serper + DeepSeek
+  via the OpenRouter wrapper.** ScrapeGraphAI 2.x's
+  ``known_providers`` list doesn't include OpenRouter; the only
+  way to wire it was a custom langchain ``model_instance`` whose
+  internal LLM cost wouldn't flow through ``RunCostLedger`` — and
+  that ledger is the cost ceiling's single source of truth. The
+  doc itself names plain Serper as the documented fallback. The
+  ScrapeGraphAI dep is still installed (it pulled in ~80
+  transitive packages); Phase 8 should either re-attempt with the
+  ``model_instance`` route + a Langchain-callback that posts into
+  the ledger, or remove the dep entirely.
+
+- **Cert-name LLM judge runs on DeepSeek, not Haiku.** The
+  OpenRouter slug ``anthropic/claude-haiku-4-5-20251001`` was
+  rejected as invalid by the OpenRouter API. Stayed on the
+  research model for both research and the cert judge. Phase 8
+  should confirm the correct Haiku-tier slug (likely
+  ``anthropic/claude-haiku-4-5`` without the date) and route the
+  cert judge separately so research and judging stay decoupled.
+
+- **Rule 10 cert-name "rename loop" deferred.** The Step 7 spec
+  called for re-prompting the research model on a layer-(c) flag
+  to produce a neutral renamed title, then re-running layers a-c.
+  The current implementation drops cert-named candidates — which
+  the doc's acceptance allows ("renamed to a neutral title OR
+  dropped"), but rename is preferred so we salvage the underlying
+  idea. Phase 8 work, behind the cert-judge model fix.
+
+- **Fuzzy heuristic for Rule 2 hardened mid-run.** The first live
+  run rejected "Implementing Data Privacy for Edge Computing and
+  IoT" against the catalogue's "Data Privacy" course at
+  ``token_set_ratio == 100`` — token-set is order/duplication
+  insensitive and treats every privacy-flavoured candidate as
+  identical to a short course name. Final implementation takes
+  ``min(token_set_ratio, ratio)`` and skips course names shorter
+  than 18 characters.
+
+- **Rule 5/8 structural check broadened.** Originally
+  ``>= 2 dollar amounts`` in ``price_basis``; this false-rejected
+  candidates whose ``price_basis`` used range syntax like
+  ``"$3,500-$4,000"`` (one ``$``, two values). Now counts ranges
+  and named providers as data points alongside raw dollar amounts.
+
+---
+
+## Phase 8 backlog from Phase 6
+
+Items discovered or deferred during Phase 6 execution. None block
+Phase 7 (scheduler + notifications) — they're refinements that need
+either tuning data or richer infrastructure.
+
+1. **Tune Rule 7's reference verifier.** The LLM judge currently
+   rejects valid authoritative sources (NIST cybersecurity
+   framework, Microsoft Zero Trust docs, finops.org training pages)
+   as "off-topic" because the prompt asks "does this page describe
+   a comparable program/course". Real references serve two roles —
+   (a) market evidence of demand, (b) authoritative content the
+   candidate is built on — and the prompt should accept either.
+   Consider majority-vote semantics: a candidate's 3 refs survive
+   if at least 2 come back "yes" or "unsure".
+
+2. **Cert-name rename loop.** On a Rule 10c flag, re-prompt the
+   research model with the catch as context and ask for a neutral
+   title; re-run layers a-c on the new title. Currently we drop.
+
+3. **Cert-judge model upgrade.** Once the right OpenRouter slug
+   for Claude Haiku 4.5 is confirmed, move the cert judge off
+   DeepSeek so research and judging are decoupled.
+
+4. **ScrapeGraphAI cost integration OR removal.** Either wire its
+   internal LLM through a Langchain callback that posts into our
+   ledger and replace the plain-Serper path, or remove the dep
+   entirely. Right now it's installed and unused.
+
+5. **Force a cert-name regression test in CI.** Add a fixture run
+   where the system prompt is weakened to allow cert names, prove
+   Rule 10 catches the resulting "CIPP/E Certification Prep"
+   variant in the live pipeline (not just unit tests).
+
+6. **Re-prompting on `needs_revision` notes.** Architectural plan
+   §3.8(c) — when a reviewer marks a candidate needs-revision, the
+   note becomes targeted re-prompt context on the next run. The
+   feedback_ingest node currently only consumes `rejected` rows
+   for Rule 9.
+
+7. **Versioned prompt evolution + A/B testing.** The
+   `prompt_versions` table got its first row this phase but the
+   versioning machinery is hard-coded to v1. Phase 8 turns it on.
+
+8. **Per-reviewer routing / `suggestions.assignee_id`.**
+   Today every reviewer is eligible to act on every suggestion;
+   Phase 8 narrows the queue per reviewer.
+
+9. **Langfuse 4.x span method hardening.** The hook currently
+   probes `start_as_current_observation` / `start_as_current_span`
+   and silently no-ops if neither exists. Phase 9 (observability)
+   should pin the SDK version and use the canonical API.
+
+10. **Embed-row backfill for legacy rejections.** Rule 9's
+    cosine probe needs `suggestions.embedding` to be populated on
+    rejected rows from the last 90 days. Migration 0006's seed rows
+    have NULL embeddings; reviewer actions don't populate them. A
+    small backfill script (or a feedback_ingest enrichment step)
+    closes that loop.
+
+---
+
+## When you resume — for Phase 7
+
+1. Open `docs/phase7.md` (not written yet — write it the same way
+   `phase5.md` and `phase6.md` were structured before opening the
+   editor).
+2. Run both smokes to confirm Phases 4 + 5 + 6 didn't drift.
+3. Phase 7 brings: the daily scheduler (cron or Prefect), the
+   email digest via the existing GAS relay, and Slack run-complete
+   pings. None of those need OpenRouter or Voyage spend, so it's a
+   cheap phase to plan.
+
+Last known good commit on `main`: see `git log --oneline -7`.
