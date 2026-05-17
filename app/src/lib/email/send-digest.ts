@@ -159,7 +159,7 @@ export async function sendDigestForRun(
 
   const html = renderDigestHtml(props);
   const subject = renderDigestSubject(props);
-  const recipients = digestRecipients();
+  const recipients = await digestRecipients();
   if (recipients.length === 0) {
     return { ok: false, error: "no digest recipients configured" };
   }

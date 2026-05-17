@@ -1,5 +1,6 @@
 import { PageHeader } from "@/components/page-header";
 import { SuggestionQueue } from "@/components/suggestion-queue";
+import { getCurrentReviewer } from "@/lib/auth/current-user";
 import { createSessionClient } from "@/lib/supabase/server-with-session";
 import type {
   RejectionTag,
@@ -73,23 +74,36 @@ function rowToSuggestion(row: SuggestionRow): Suggestion {
 }
 
 export default async function SuggestionsTodayPage() {
-  const supabase = await createSessionClient();
+  const [profile, supabase] = await Promise.all([
+    getCurrentReviewer(),
+    createSessionClient(),
+  ]);
+  const isAdmin = profile?.role === "admin";
+  const userId = profile?.id ?? null;
+
+  // Phase 8 Step 10: reviewers see only suggestions assigned to
+  // them OR unassigned ones. Admins see everything. The RLS policy
+  // on suggestions_reviewer_update is the backstop on writes (a
+  // reviewer who somehow saw a row not assigned to them can't act
+  // on it anyway); filtering here keeps the queue UI honest.
+  let queueQuery = supabase
+    .from("suggestions")
+    .select(
+      "id,run_id,title,rationale,category,proposed_subcategory,target_audience,duration_days,delivery_format,suggested_price_usd,price_basis,references,status,created_at,assignee_id",
+    )
+    .eq("status", "pending_review")
+    .order("created_at", { ascending: false })
+    .limit(50);
+  if (!isAdmin && userId) {
+    queueQuery = queueQuery.or(`assignee_id.is.null,assignee_id.eq.${userId}`);
+  }
 
   // Three independent reads — fire them in parallel.
-  // 1. The pending queue itself.
-  // 2. The most-recent agent_run for the header banner (model used,
-  //    categories targeted). Seed migration 0006 inserts one row; the
-  //    real engine in Phase 6 will start producing more.
+  // 1. The pending queue itself (filtered by assignee for reviewers).
+  // 2. The most-recent agent_run for the header banner.
   // 3. The rejection taxonomy for the Reject modal.
   const [queueResult, runResult, taxonomyResult] = await Promise.all([
-    supabase
-      .from("suggestions")
-      .select(
-        "id,run_id,title,rationale,category,proposed_subcategory,target_audience,duration_days,delivery_format,suggested_price_usd,price_basis,references,status,created_at",
-      )
-      .eq("status", "pending_review")
-      .order("created_at", { ascending: false })
-      .limit(50),
+    queueQuery,
     supabase
       .from("agent_runs")
       .select(
