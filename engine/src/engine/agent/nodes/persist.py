@@ -1,26 +1,203 @@
 """Insert agent_runs + surviving suggestions into Supabase.
 
-Phase 6 Step 1: stub. Honours ``dry_run`` for future steps even now.
-Phase 6 Step 8: real writes — agent_runs row first (with all cost
-columns from the RunCostLedger), then surviving suggestions with
-status='pending_review' and Voyage embeddings populated.
+Three writes per run:
+
+  1. ``prompt_versions`` — ensure an ``active`` row exists. Phase 6
+     hard-codes v1 with the contents of ``prompts/research_system.txt``.
+     Idempotent: if an active row already exists we re-use its id.
+  2. ``agent_runs`` — one row with the cost ledger totals, the
+     categories targeted, candidate counts, and a link to the prompt
+     version.
+  3. ``suggestions`` — one row per surviving candidate with status
+     ``pending_review``, the run id, and a Voyage embedding so
+     future runs' Rule 9 can compare against this one.
+
+The service-role supabase client (``engine.supabase.supabase()``)
+bypasses RLS — exactly what we want here. Phase 5's reviewer-facing
+Server Actions are the only path that should run as a user session.
 """
 
 from __future__ import annotations
 
 import logging
+import uuid
+from datetime import UTC, datetime
+from importlib.resources import files
+from typing import Any
+
+import numpy as np
 
 from engine.agent.state import AgentState
+from engine.llm.voyage import embed_one
+from engine.supabase import supabase
 
 log = logging.getLogger(__name__)
 
+PROMPT_VERSION_NUMBER = 1
+PROMPT_VERSION_NOTES = "Phase 6 — initial hard-coded research prompt."
+
+
+def _ensure_prompt_version(*, model_used: str) -> str:
+    """Return the id of an ``active`` prompt_versions row, creating it
+    on the first run."""
+    sb = supabase()
+    existing = (
+        sb.table("prompt_versions")
+        .select("id,version,status")
+        .eq("status", "active")
+        .order("version", desc=True)
+        .limit(1)
+        .execute()
+    )
+    if existing.data:
+        return existing.data[0]["id"]
+
+    prompt_text = (
+        files("engine.prompts")
+        .joinpath("research_system.txt")
+        .read_text(encoding="utf-8")
+    )
+    row = {
+        "id": str(uuid.uuid4()),
+        "version": PROMPT_VERSION_NUMBER,
+        "model_slug": model_used,
+        "system_prompt": prompt_text,
+        "status": "active",
+        "notes": PROMPT_VERSION_NOTES,
+    }
+    sb.table("prompt_versions").insert(row).execute()
+    return row["id"]
+
+
+def _insert_agent_run(
+    *,
+    model_used: str,
+    prompt_version_id: str,
+    categories_targeted: list[str],
+    candidates_produced: int,
+    candidates_persisted: int,
+    tokens_in: int,
+    tokens_out: int,
+    cost_usd: float,
+) -> str:
+    """Insert the agent_runs row; return its id."""
+    sb = supabase()
+    now = datetime.now(UTC).isoformat()
+    run_id = str(uuid.uuid4())
+    sb.table("agent_runs").insert(
+        {
+            "id": run_id,
+            "started_at": now,
+            "finished_at": now,
+            "model_used": model_used,
+            "prompt_version_id": prompt_version_id,
+            "categories_targeted": categories_targeted,
+            "candidates_produced": candidates_produced,
+            "candidates_persisted": candidates_persisted,
+            "total_tokens_in": tokens_in,
+            "total_tokens_out": tokens_out,
+            "cost_usd": round(cost_usd, 6),
+        }
+    ).execute()
+    return run_id
+
+
+def _vector_to_pg_string(vec: np.ndarray) -> str:
+    """pgvector accepts a literal string like '[0.1,0.2,...]' over PostgREST."""
+    return "[" + ",".join(f"{x:.6f}" for x in vec.tolist()) + "]"
+
+
+def _insert_suggestions(
+    survivors: list[dict[str, Any]],
+    *,
+    run_id: str,
+    embeddings_cache: dict[str, np.ndarray],
+    ledger,  # RunCostLedger; threaded through state
+) -> int:
+    """Insert one suggestions row per survivor; return inserted count."""
+    sb = supabase()
+    rows: list[dict[str, Any]] = []
+    for c in survivors:
+        title = c["title"]
+        vec = embeddings_cache.get(title)
+        if vec is None and ledger is not None:
+            # Defensive: Rule 2 should have cached it already, but if a
+            # candidate skipped Rule 2 for some reason we embed here.
+            vec = embed_one(
+                f"{title}. {c.get('rationale', '')}",
+                ledger=ledger,
+                input_type="document",
+            )
+        emb_str = _vector_to_pg_string(vec) if vec is not None else None
+
+        rows.append(
+            {
+                "id": str(uuid.uuid4()),
+                "run_id": run_id,
+                "title": title,
+                "rationale": c.get("rationale"),
+                "category": c["category"],
+                "proposed_subcategory": c.get("proposed_subcategory"),
+                "target_audience": c.get("target_audience"),
+                "duration_days": c.get("duration_days"),
+                "delivery_format": "instructor-led",
+                "suggested_price_usd": c["suggested_price_usd"],
+                "price_basis": c.get("price_basis"),
+                "references": c.get("references", []),
+                "embedding": emb_str,
+                "status": "pending_review",
+            }
+        )
+    if not rows:
+        return 0
+    sb.table("suggestions").insert(rows).execute()
+    return len(rows)
+
 
 def run(state: AgentState) -> AgentState:
-    finals = state.get("final_candidates", [])
+    finals = state.get("final_candidates") or []
     dry_run = state.get("dry_run", False)
+    or_client = state.get("_or_client")  # type: ignore[typeddict-item]
+    ledger = state.get("_ledger")  # type: ignore[typeddict-item]
+    embeddings_cache = state.get("_embeddings_cache") or {}  # type: ignore[typeddict-item]
+    targeted = state.get("targeted_categories") or []
+    candidates_produced = len(state.get("raw_candidates") or [])
+
+    model_used = "deepseek/deepseek-chat-v3.1" if or_client is None else or_client.default_model
+
     log.info(
-        "node=persist final=%d dry_run=%s (stub)",
+        "node=persist final=%d dry_run=%s targeted=%s",
         len(finals),
         dry_run,
+        targeted,
     )
-    return {"run_id": None, "prompt_version_id": None}
+
+    if dry_run:
+        log.info("node=persist DRY-RUN — no DB writes")
+        return {"run_id": None, "prompt_version_id": None}
+
+    prompt_version_id = _ensure_prompt_version(model_used=model_used)
+    run_id = _insert_agent_run(
+        model_used=model_used,
+        prompt_version_id=prompt_version_id,
+        categories_targeted=targeted,
+        candidates_produced=candidates_produced,
+        candidates_persisted=len(finals),
+        tokens_in=ledger.total_tokens_in if ledger else 0,
+        tokens_out=ledger.total_tokens_out if ledger else 0,
+        cost_usd=ledger.total_usd if ledger else 0.0,
+    )
+
+    inserted = _insert_suggestions(
+        finals,
+        run_id=run_id,
+        embeddings_cache=embeddings_cache,
+        ledger=ledger,
+    )
+    log.info(
+        "node=persist inserted run_id=%s suggestions=%d cost=$%0.4f",
+        run_id,
+        inserted,
+        ledger.total_usd if ledger else 0.0,
+    )
+    return {"run_id": run_id, "prompt_version_id": prompt_version_id}

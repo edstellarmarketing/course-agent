@@ -71,6 +71,16 @@ class EngineSettings(BaseSettings):
     langfuse_host: HttpUrl | None = Field(default=None, alias="LANGFUSE_HOST")
     sentry_dsn: str | None = Field(default=None, alias="SENTRY_DSN")
 
+    # ── Phase 6 — agent cost ceiling ──────────────────────────────────
+    # Per-run circuit breaker. If the RunCostLedger total crosses this
+    # before persistence, the run aborts with a RunCostCeilingExceeded
+    # and writes finished_at on whatever partial agent_runs row exists.
+    engine_run_cost_ceiling_usd: float = Field(
+        default=5.0,
+        alias="ENGINE_RUN_COST_CEILING_USD",
+        description="Hard per-run spend cap, in USD.",
+    )
+
 
 @lru_cache(maxsize=1)
 def settings() -> EngineSettings:

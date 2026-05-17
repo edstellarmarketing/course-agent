@@ -29,7 +29,9 @@ from engine.agent.nodes.gap_analyze import rank_categories
 from engine.agent.nodes.inventory_read import load_inventory
 from engine.agent.nodes.research import research_one_category
 from engine.agent.state import AgentState
+from engine.config import settings
 from engine.llm.openrouter import OpenRouterClient, RunCostLedger
+from engine.rules.dispatcher import RunCostCeilingExceeded
 
 # ── Logging setup ────────────────────────────────────────────────
 # UTC ISO timestamps + structured key=value lines, grep-able and
@@ -59,27 +61,47 @@ def _utc_converter(*args, **kwargs):
 
 # ── Subcommand: run ──────────────────────────────────────────────
 def _cmd_run(args: argparse.Namespace) -> int:
-    initial: AgentState = {
-        "dry_run": bool(args.dry_run),
-        "forced_category": args.category,
-        "top_k": int(args.top_k),
-        "max_candidates_per_category": int(args.max_candidates),
-    }
+    cfg = settings()
     log = logging.getLogger("agent.run")
-    log.info(
-        "run start dry_run=%s category=%r top_k=%d max_candidates=%d",
-        initial["dry_run"],
-        initial["forced_category"],
-        initial["top_k"],
-        initial["max_candidates_per_category"],
-    )
-    graph = build_graph()
-    final_state = graph.invoke(initial)
-    log.info(
-        "run end final_candidates=%d run_id=%s",
-        len(final_state.get("final_candidates", []) or []),
-        final_state.get("run_id"),
-    )
+    ledger = RunCostLedger()
+    with OpenRouterClient(DEFAULT_RESEARCH_MODEL, ledger) as or_client:
+        initial: AgentState = {
+            "dry_run": bool(args.dry_run),
+            "forced_category": args.category,
+            "top_k": int(args.top_k),
+            "max_candidates_per_category": int(args.max_candidates),
+            # Non-TypedDict keys; LangGraph passes through untouched.
+            "_or_client": or_client,  # type: ignore[typeddict-unknown-key]
+            "_ledger": ledger,  # type: ignore[typeddict-unknown-key]
+        }
+        log.info(
+            "run start dry_run=%s category=%r top_k=%d max_candidates=%d ceiling=$%.2f",
+            initial["dry_run"],
+            initial["forced_category"],
+            initial["top_k"],
+            initial["max_candidates_per_category"],
+            cfg.engine_run_cost_ceiling_usd,
+        )
+        graph = build_graph()
+        try:
+            final_state = graph.invoke(initial)
+        except RunCostCeilingExceeded as exc:
+            log.error("run aborted by cost ceiling: %s", exc)
+            log.error(
+                "ledger total=$%.4f tokens_in=%d tokens_out=%d",
+                ledger.total_usd,
+                ledger.total_tokens_in,
+                ledger.total_tokens_out,
+            )
+            return 2
+        log.info(
+            "run end final_candidates=%d run_id=%s cost=$%.4f tokens_in=%d tokens_out=%d",
+            len(final_state.get("final_candidates", []) or []),
+            final_state.get("run_id"),
+            ledger.total_usd,
+            ledger.total_tokens_in,
+            ledger.total_tokens_out,
+        )
     return 0
 
 

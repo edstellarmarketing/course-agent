@@ -27,6 +27,9 @@ log = logging.getLogger(__name__)
 
 COSINE_THRESHOLD = 0.85
 FUZZY_THRESHOLD = 90
+# Course names shorter than this are too noisy for token-based fuzzy —
+# e.g. "Data Privacy" would catch every privacy candidate at 100.
+MIN_NAME_FOR_FUZZY = 18
 
 
 def _candidate_text(c: RawCandidate) -> str:
@@ -61,9 +64,19 @@ def check(candidate: RawCandidate, ctx) -> "RuleResult":  # noqa: ANN001
             f"cosine {max_sim:.2f} >= {COSINE_THRESHOLD} vs courses[{course_id}]"
         )
 
-    # (b) Fuzzy title against every course name from the inventory.
+    # (b) Fuzzy title against every course name. We use the MIN of
+    # token_set_ratio (order/duplication insensitive) and ratio
+    # (length-aware Levenshtein) so a long candidate that merely
+    # contains every word of a short course name doesn't score 100.
+    # Course names shorter than MIN_NAME_FOR_FUZZY get skipped —
+    # 2-word existing-course names like "Data Privacy" would match
+    # too aggressively against any candidate in the same domain.
     for name in ctx.course_names:
-        score = fuzz.token_set_ratio(candidate.title, name)
+        if len(name) < MIN_NAME_FOR_FUZZY:
+            continue
+        ts = fuzz.token_set_ratio(candidate.title, name)
+        rr = fuzz.ratio(candidate.title, name)
+        score = min(ts, rr)
         if score >= FUZZY_THRESHOLD:
             return RuleResult.failed(
                 f"fuzzy title {score} >= {FUZZY_THRESHOLD} vs course {name!r}"

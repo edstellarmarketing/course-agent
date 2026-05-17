@@ -30,8 +30,6 @@ def maybe_langfuse_span(name: str, **attrs: Any) -> Iterator[None]:
         yield
         return
 
-    # Lazy import: keeps `langfuse` out of the hot path when it's not
-    # configured, and avoids paying its import cost in unit tests.
     try:
         from langfuse import Langfuse  # type: ignore[import-not-found]
     except ImportError:
@@ -44,14 +42,25 @@ def maybe_langfuse_span(name: str, **attrs: Any) -> Iterator[None]:
         yield
         return
 
-    # The Langfuse 4.x API exposes a `start_as_current_span` context
-    # manager. We pass the call name as the span name and attrs as
-    # the span's metadata so the dashboard can filter by them.
-    try:
-        with client.start_as_current_span(name=name, metadata=attrs):
-            yield
-    except Exception as exc:  # noqa: BLE001 — telemetry never blocks the run
-        log.warning("langfuse span %s failed: %s — continuing", name, exc)
+    # Langfuse 4.x API varies across patch versions — probe a few
+    # known span factories. If none work we silently no-op.
+    span_factory = (
+        getattr(client, "start_as_current_observation", None)
+        or getattr(client, "start_as_current_span", None)
+    )
+    if span_factory is None:
+        yield
+        return
+
+    # ExitStack so the inner yield isn't tangled with our own
+    # try/except — caller exceptions must propagate cleanly, and
+    # the contextmanager generator can yield exactly once.
+    with contextlib.ExitStack() as stack:
+        try:
+            stack.enter_context(span_factory(name=name, metadata=attrs))
+        except Exception as exc:  # noqa: BLE001 — telemetry never blocks the run
+            log.warning("langfuse span %s setup failed: %s — continuing", name, exc)
+            # Fall through without the span attached.
         yield
 
 

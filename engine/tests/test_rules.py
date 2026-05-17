@@ -127,7 +127,7 @@ class TestRule05_08:
         c = _make(price_basis="Vendors charge a premium in this niche.")
         r = rule_05_08_structural.check(c, _ctx())
         assert not r.ok
-        assert "dollar amount" in r.reason
+        assert "data point" in r.reason
 
     def test_fails_when_price_basis_has_only_one_dollar_amount(self) -> None:
         c = _make(price_basis="One comparable at $2,800.")

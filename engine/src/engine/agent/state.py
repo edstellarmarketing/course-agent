@@ -73,3 +73,15 @@ class AgentState(TypedDict, total=False):
     # ── Populated by persist ────────────────────────────────────
     run_id: str | None
     prompt_version_id: str | None
+
+    # ── Runtime-only handles threaded by cli.py ──────────────────
+    # These are non-JSON-serializable objects (OpenRouter client,
+    # cost ledger, the embeddings cache from Rule 2, the recent-
+    # rejection matrix). LangGraph 1.x's StateGraph strips keys
+    # not declared on the schema, so we have to list them here
+    # even though they're conceptually "context" rather than state.
+    # Phase 8 may move them into a LangGraph context_schema.
+    _or_client: Any
+    _ledger: Any
+    _embeddings_cache: dict[str, Any]
+    _recent_rejection_matrix: Any
