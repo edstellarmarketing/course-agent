@@ -1,0 +1,101 @@
+# Rule 10 — certification names + credential acronyms + certifying-body names.
+# Edstellar is not an authorised training partner of these bodies, so the
+# catalogue cannot use their names or credential acronyms in course titles.
+# Add entries here as reviewers reject things the static check missed.
+#
+# Format: one entry per line. Lines starting with '#' and blank lines are ignored.
+# Tokens <= 6 chars are matched as whole words; longer entries as substrings.
+
+# ── Certifying bodies ──
+IAPP
+ISACA
+ISC2
+ISC^2
+(ISC)2
+PMI
+AXELOS
+SHRM
+CIPD
+ASQ
+NEBOSH
+IOSH
+BSI
+ICAgile
+PeopleCert
+Scrum Alliance
+Scrum.org
+EXIN
+SAFe
+Comptia
+CompTIA
+
+# ── Credentials / cert acronyms ──
+CIPP/E
+CIPP/US
+CIPP
+CIPM
+CIPT
+CISSP
+CISM
+CISA
+CRISC
+CGEIT
+CCSP
+SSCP
+CSSLP
+PMP
+CAPM
+PgMP
+PfMP
+ACP
+PBA
+PMI-RMP
+PMI-SP
+ITIL
+PRINCE2
+PRINCE 2
+SHRM-CP
+SHRM-SCP
+PHR
+SPHR
+GPHR
+ICP-ENT
+ICP-ACC
+ICP-LEA
+ICP-CAT
+CSM
+CSPO
+CSP
+DASM
+DASSM
+DAVSC
+DAOFM
+Lean Six Sigma Black Belt
+Six Sigma Green Belt
+SSGB
+SSBB
+SSMBB
+CMQ/OE
+CMA
+CFA
+CPA
+ACCA
+FRM
+COBIT
+TOGAF
+ArchiMate
+Cisco CCNA
+CCNA
+CCNP
+CCIE
+AWS Certified
+Azure Certified
+GCP Certified
+Microsoft Certified
+Google Certified
+Oracle Certified
+RHCSA
+RHCE
+LPIC-1
+LPIC-2
+LPIC-3

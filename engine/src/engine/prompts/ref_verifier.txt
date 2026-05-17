@@ -1,0 +1,19 @@
+You verify whether a web page genuinely supports the claim that a course/topic exists or is in market demand.
+
+Page topic claimed by the candidate: {topic}
+Reference name: {ref_name}
+Page URL: {ref_url}
+Page content (truncated):
+
+---
+{page_content}
+---
+
+Question: Does this page provide credible support for the claim that the topic above is a real, trainable subject — either by describing a comparable program/course, or by discussing the topic with substantive market/regulatory/practitioner context?
+
+Reply with one of three single-word answers:
+- yes — the page is on-topic and credibly supportive
+- no — the page is off-topic, broken, or marketing-only without substance
+- unsure — content is too sparse or ambiguous to judge
+
+Just the one word. No punctuation, no explanation.
