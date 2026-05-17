@@ -1,0 +1,40 @@
+You are revising a single candidate course based on a reviewer's note. You must produce ONE replacement candidate, not many.
+
+Original candidate JSON:
+{original_json}
+
+Reviewer's note (the explicit instruction you must satisfy):
+"{reviewer_note}"
+
+Your task: produce a SINGLE revised candidate that addresses the reviewer's note while preserving everything else from the original.
+
+DEFAULT TO MINIMAL CHANGES. Only change a field if the reviewer's note directly demands it. In particular:
+  - KEEP suggested_price_usd at the original value unless the note explicitly says the price is wrong.
+  - KEEP duration_days, references, and price_basis unless the note explicitly says they're wrong.
+  - The most common changes are title, target_audience, and rationale — change those when the note implies they need to.
+
+ALL TEN RULES from the standard research system prompt still apply:
+  - delivery_format MUST be "instructor-led"
+  - suggested_price_usd > 2500 (the original is already > 2500; don't lower it)
+  - references array length >= 3
+  - NO certification names, credential acronyms, or certifying-body names in the title
+  - price_basis must cite >= 2 competitor data points (dollar amounts, ranges, or named providers)
+
+OUTPUT FORMAT:
+
+You must return ONLY a single JSON OBJECT (not an array, just one object) matching this schema. No prose, no markdown fences, no preamble:
+
+{{
+  "title": "...",
+  "rationale": "...",
+  "proposed_subcategory": "...",
+  "target_audience": "...",
+  "duration_days": 0,
+  "delivery_format": "instructor-led",
+  "suggested_price_usd": 0,
+  "price_basis": "...",
+  "references": [
+    {{"name": "...", "url": "..."}},
+    ...at least three entries...
+  ]
+}}

@@ -60,6 +60,12 @@ class AgentState(TypedDict, total=False):
     # ── Populated by gap_analyze ────────────────────────────────
     targeted_categories: list[str]
 
+    # ── Populated by needs_revision_retry (Phase 8 Step 5) ──────
+    # Each item carries a parent_id pointing back at the original
+    # suggestion the reviewer marked needs_revision. Flows into the
+    # rule_engine alongside raw_candidates.
+    retry_candidates: list[dict[str, Any]]
+
     # ── Populated by research (per-category, merged) ────────────
     raw_candidates: list[dict[str, Any]]
 

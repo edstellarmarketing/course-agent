@@ -132,24 +132,27 @@ def _insert_suggestions(
             )
         emb_str = _vector_to_pg_string(vec) if vec is not None else None
 
-        rows.append(
-            {
-                "id": str(uuid.uuid4()),
-                "run_id": run_id,
-                "title": title,
-                "rationale": c.get("rationale"),
-                "category": c["category"],
-                "proposed_subcategory": c.get("proposed_subcategory"),
-                "target_audience": c.get("target_audience"),
-                "duration_days": c.get("duration_days"),
-                "delivery_format": "instructor-led",
-                "suggested_price_usd": c["suggested_price_usd"],
-                "price_basis": c.get("price_basis"),
-                "references": c.get("references", []),
-                "embedding": emb_str,
-                "status": "pending_review",
-            }
-        )
+        row = {
+            "id": str(uuid.uuid4()),
+            "run_id": run_id,
+            "title": title,
+            "rationale": c.get("rationale"),
+            "category": c["category"],
+            "proposed_subcategory": c.get("proposed_subcategory"),
+            "target_audience": c.get("target_audience"),
+            "duration_days": c.get("duration_days"),
+            "delivery_format": "instructor-led",
+            "suggested_price_usd": c["suggested_price_usd"],
+            "price_basis": c.get("price_basis"),
+            "references": c.get("references", []),
+            "embedding": emb_str,
+            "status": "pending_review",
+        }
+        # Phase 8 Step 5 — needs_revision_retry stamps parent_id on the
+        # revised candidate so the new row links back to the original.
+        if c.get("parent_id"):
+            row["parent_id"] = c["parent_id"]
+        rows.append(row)
     if not rows:
         return 0
     sb.table("suggestions").insert(rows).execute()

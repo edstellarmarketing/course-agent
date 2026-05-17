@@ -24,10 +24,15 @@ log = logging.getLogger(__name__)
 
 def run(state: AgentState) -> AgentState:
     raw_dicts: list[dict[str, Any]] = state.get("raw_candidates") or []
+    retry_dicts: list[dict[str, Any]] = state.get("retry_candidates") or []
     or_client = state.get("_or_client")  # type: ignore[typeddict-item]
     ledger = state.get("_ledger")  # type: ignore[typeddict-item]
 
-    if not raw_dicts:
+    # Retry candidates flow through the same 10 rules as fresh
+    # research output — Phase 8 Step 5 explicitly wants them on the
+    # same path so a revised candidate doesn't sneak past Rule 9 or 10.
+    combined = retry_dicts + raw_dicts
+    if not combined:
         log.info("node=rule_engine no candidates")
         return {
             "surviving_candidates": [],
@@ -36,7 +41,7 @@ def run(state: AgentState) -> AgentState:
 
     # Re-instantiate pydantic models; AgentState carries plain dicts so
     # LangGraph's JSON serialization stays clean.
-    candidates = [RawCandidate.model_validate(d) for d in raw_dicts]
+    candidates = [RawCandidate.model_validate(d) for d in combined]
 
     inv = load_inventory()
     course_names = [c.get("name", "") for c in inv.courses]

@@ -36,6 +36,10 @@ class RawCandidate(BaseModel):
     # Stamped post-research by the dispatcher when we know the category;
     # research output itself doesn't need to repeat it.
     category: str | None = None
+    # Phase 8 Step 5: populated only by the needs_revision_retry node.
+    # When present, persist.py writes this onto the new suggestions row
+    # so /suggestions/[id] can show the lineage.
+    parent_id: str | None = None
 
 
 class RawCandidateList(BaseModel):
