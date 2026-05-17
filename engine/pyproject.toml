@@ -26,6 +26,7 @@ engine = "engine:main"
 smoke = "engine.scripts.smoke_test:main"
 embed_courses = "engine.scripts.embed_courses:main"
 agent = "engine.cli:main"
+backfill_suggestions = "engine.scripts.backfill_suggestion_embeddings:main"
 
 [build-system]
 requires = ["uv_build>=0.9.21,<0.10.0"]
