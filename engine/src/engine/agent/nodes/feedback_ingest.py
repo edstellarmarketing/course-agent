@@ -30,6 +30,7 @@ from typing import Any
 import numpy as np
 
 from engine.agent.state import AgentState
+from engine.prompts.versioned import pick_active_prompt
 from engine.supabase import supabase
 
 log = logging.getLogger(__name__)
@@ -100,15 +101,25 @@ def run(state: AgentState) -> AgentState:
         np.asarray(vectors, dtype=np.float32) if vectors else None
     )
 
+    # Phase 8 Step 6 — resolve the prompt for this run. Pulled here
+    # because feedback_ingest is the first runtime node; downstream
+    # research/persist nodes read from state.
+    prompt = pick_active_prompt()
+
     log.info(
         "node=feedback_ingest window_days=%d rejections=%d matrix=%s "
-        "forced_category=%r",
+        "forced_category=%r prompt_version=%s status=%s",
         REJECTION_WINDOW_DAYS,
         len(kept),
         tuple(matrix.shape) if matrix is not None else "()",
         state.get("forced_category"),
+        prompt.version,
+        prompt.status,
     )
     return {
         "recent_rejections": kept,
         "_recent_rejection_matrix": matrix,
+        "_prompt_version_id": prompt.version_id,
+        "_prompt_version_status": prompt.status,
+        "_prompt_system_text": prompt.system_prompt,
     }

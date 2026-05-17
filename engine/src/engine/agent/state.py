@@ -91,3 +91,11 @@ class AgentState(TypedDict, total=False):
     _ledger: Any
     _embeddings_cache: dict[str, Any]
     _recent_rejection_matrix: Any
+
+    # ── Phase 8 Step 6 — DB-driven prompt versioning ─────────────
+    # feedback_ingest resolves the active (or A/B-chosen candidate)
+    # prompt_versions row at run start; research reads the text,
+    # persist writes the id onto agent_runs.prompt_version_id.
+    _prompt_version_id: str | None
+    _prompt_version_status: str  # 'active', 'candidate', or 'fallback'
+    _prompt_system_text: str

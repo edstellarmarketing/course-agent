@@ -42,8 +42,12 @@ from engine.llm.serper import search as serper_search
 
 log = logging.getLogger(__name__)
 
-# Loaded once at import time so the file IO doesn't repeat per category.
-_RESEARCH_SYSTEM_PROMPT = (
+# Fallback prompt loaded at import time. Phase 8 Step 6 makes the
+# real source of truth ``prompt_versions`` in the DB — resolved by
+# ``feedback_ingest`` and threaded through state. This static read
+# stays as a safety net so tests and offline tools can still import
+# without a Supabase connection.
+_RESEARCH_SYSTEM_PROMPT_FALLBACK = (
     files("engine.prompts").joinpath("research_system.txt").read_text(encoding="utf-8")
 )
 
@@ -138,8 +142,15 @@ def research_one_category(
     max_candidates: int,
     or_client: OpenRouterClient,
     ledger: RunCostLedger,
+    system_prompt_base: str | None = None,
 ) -> list[RawCandidate]:
-    """Run one Serper + LLM round-trip and return validated candidates."""
+    """Run one Serper + LLM round-trip and return validated candidates.
+
+    ``system_prompt_base`` defaults to the file-loaded fallback so
+    callers (CLI's `agent research` subcommand for example) don't
+    need to thread the DB-resolved prompt through. The graph's
+    research node always passes the resolved active/candidate text.
+    """
     hits_obj = serper_search(_build_search_query(category), ledger=ledger, num=10)
     hits = [{"title": h.title, "link": h.link, "snippet": h.snippet} for h in hits_obj]
 
@@ -151,7 +162,7 @@ def research_one_category(
     # dominant tag.
     guardrail = addendum_for_category(category)
 
-    system_prompt = _RESEARCH_SYSTEM_PROMPT
+    system_prompt = system_prompt_base or _RESEARCH_SYSTEM_PROMPT_FALLBACK
     if guardrail:
         system_prompt = (
             f"{system_prompt}\n\n"
@@ -199,6 +210,11 @@ def run(state: AgentState) -> AgentState:
         log.info("node=research no client/ledger in state — skipping")
         return {"raw_candidates": []}
 
+    # Phase 8 Step 6: prefer the DB-resolved prompt; fall back to the
+    # file load only if feedback_ingest didn't populate state (offline
+    # tools, partial fixtures).
+    system_prompt_base = state.get("_prompt_system_text") or None  # type: ignore[typeddict-item]
+
     all_candidates: list[dict[str, Any]] = []
     for cat in targets:
         cands = research_one_category(
@@ -206,6 +222,7 @@ def run(state: AgentState) -> AgentState:
             max_candidates=max_candidates,
             or_client=or_client,
             ledger=ledger,
+            system_prompt_base=system_prompt_base,
         )
         all_candidates.extend(c.model_dump() for c in cands)
 

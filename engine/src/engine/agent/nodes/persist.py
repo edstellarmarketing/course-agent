@@ -181,7 +181,12 @@ def run(state: AgentState) -> AgentState:
         log.info("node=persist DRY-RUN — no DB writes")
         return {"run_id": None, "prompt_version_id": None}
 
-    prompt_version_id = _ensure_prompt_version(model_used=model_used)
+    # Phase 8 Step 6 — feedback_ingest already resolved the prompt
+    # version for this run. Use that id when present; otherwise fall
+    # back to ensuring a v1 row exists (Phase 6 behaviour).
+    prompt_version_id = state.get("_prompt_version_id")  # type: ignore[typeddict-item]
+    if not prompt_version_id:
+        prompt_version_id = _ensure_prompt_version(model_used=model_used)
     run_id = _insert_agent_run(
         model_used=model_used,
         prompt_version_id=prompt_version_id,
