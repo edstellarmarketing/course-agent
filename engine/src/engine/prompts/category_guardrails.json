@@ -1,0 +1,19 @@
+{
+  "_doc": [
+    "Phase 8 Step 4 — per-category prompt addenda.",
+    "When the dominant rejection tag in a category over the last 30 days",
+    "matches trigger_tag (and the count meets MIN_DOMINANT_COUNT in",
+    "engine.agent.guardrails), the addendum is appended to the research",
+    "system prompt for that category. Seed entries below come from the",
+    "architectural plan §3.8(b)(2); add more as reviewer patterns",
+    "emerge."
+  ],
+  "Cybersecurity": {
+    "trigger_tag": "not_instructor_led_market",
+    "addendum": "In Cybersecurity, the market for many topics is dominated by self-paced certification prep. Only propose courses where you can cite at least one real instructor-led offering from a non-certifying provider (e.g. SANS Institute, Chainguard Academy, vendor security education teams, FIRST.org workshops). If the only evidence of demand is self-paced material, drop the candidate."
+  },
+  "Data Analytics": {
+    "trigger_tag": "too_niche",
+    "addendum": "Data Analytics candidates in the past 30 days have been rejected as too narrow. Favour courses framed around discipline (semantic modelling, analytics governance, KPI architecture) over specific tools (dbt, Looker, Tableau). The audience should be platform leads or data directors — not analysts."
+  }
+}

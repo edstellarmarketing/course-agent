@@ -35,6 +35,7 @@ from pydantic import ValidationError
 
 from engine.agent.candidate import RawCandidate, RawCandidateList
 from engine.agent.few_shot import load_few_shot_block
+from engine.agent.guardrails import addendum_for_category
 from engine.agent.state import AgentState
 from engine.llm.openrouter import OpenRouterClient, RunCostLedger
 from engine.llm.serper import search as serper_search
@@ -145,9 +146,21 @@ def research_one_category(
     # Phase 8 Step 3: few-shot signals from the category's feedback
     # history. Empty block → first message stack stays Phase-6-shape.
     few_shot = load_few_shot_block(category)
+    # Phase 8 Step 4: dominant-tag-driven guardrail addendum. None
+    # when no JSON entry, no rejections in window, or non-matching
+    # dominant tag.
+    guardrail = addendum_for_category(category)
+
+    system_prompt = _RESEARCH_SYSTEM_PROMPT
+    if guardrail:
+        system_prompt = (
+            f"{system_prompt}\n\n"
+            f"CATEGORY-SPECIFIC GUARDRAIL (from recent reviewer rejections):\n"
+            f"{guardrail}"
+        )
 
     messages: list[dict[str, str]] = [
-        {"role": "system", "content": _RESEARCH_SYSTEM_PROMPT},
+        {"role": "system", "content": system_prompt},
     ]
     if few_shot.has_examples:
         messages.append({"role": "system", "content": few_shot.as_prompt_text()})
@@ -164,12 +177,13 @@ def research_one_category(
     candidates = _parse_candidates(completion.text, category=category)
     log.info(
         "research category=%r serper_hits=%d candidates_returned=%d "
-        "few_shot=(approvals=%d, rejections=%d)",
+        "few_shot=(approvals=%d, rejections=%d) guardrail=%s",
         category,
         len(hits),
         len(candidates),
         len(few_shot.approvals),
         len(few_shot.rejections),
+        "fired" if guardrail else "none",
     )
     return candidates
 
