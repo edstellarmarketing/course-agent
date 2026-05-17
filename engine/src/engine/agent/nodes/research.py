@@ -34,6 +34,7 @@ from typing import Any
 from pydantic import ValidationError
 
 from engine.agent.candidate import RawCandidate, RawCandidateList
+from engine.agent.few_shot import load_few_shot_block
 from engine.agent.state import AgentState
 from engine.llm.openrouter import OpenRouterClient, RunCostLedger
 from engine.llm.serper import search as serper_search
@@ -141,22 +142,34 @@ def research_one_category(
     hits_obj = serper_search(_build_search_query(category), ledger=ledger, num=10)
     hits = [{"title": h.title, "link": h.link, "snippet": h.snippet} for h in hits_obj]
 
+    # Phase 8 Step 3: few-shot signals from the category's feedback
+    # history. Empty block → first message stack stays Phase-6-shape.
+    few_shot = load_few_shot_block(category)
+
+    messages: list[dict[str, str]] = [
+        {"role": "system", "content": _RESEARCH_SYSTEM_PROMPT},
+    ]
+    if few_shot.has_examples:
+        messages.append({"role": "system", "content": few_shot.as_prompt_text()})
+
     user_prompt = _build_user_prompt(category, hits, max_candidates)
+    messages.append({"role": "user", "content": user_prompt})
+
     completion = or_client.complete(
-        [
-            {"role": "system", "content": _RESEARCH_SYSTEM_PROMPT},
-            {"role": "user", "content": user_prompt},
-        ],
+        messages,
         max_tokens=4096,
         temperature=0.4,
         span="research.candidates",
     )
     candidates = _parse_candidates(completion.text, category=category)
     log.info(
-        "research category=%r serper_hits=%d candidates_returned=%d",
+        "research category=%r serper_hits=%d candidates_returned=%d "
+        "few_shot=(approvals=%d, rejections=%d)",
         category,
         len(hits),
         len(candidates),
+        len(few_shot.approvals),
+        len(few_shot.rejections),
     )
     return candidates
 
