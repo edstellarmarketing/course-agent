@@ -45,3 +45,9 @@ pnpm-debug.log*
 
 # ─── Claude / local agent state ───────────────────────────────
 .claude/settings.local.json
+
+# ─── Playwright MCP snapshots (Phase 5 verification artifacts) ─
+.playwright-mcp/
+
+# ─── Ad-hoc verification screenshots at repo root ─────────────
+/phase*-*.png
