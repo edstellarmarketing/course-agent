@@ -9,14 +9,23 @@ authors = [
 requires-python = ">=3.13"
 dependencies = [
     "httpx>=0.28.1",
+    "pydantic>=2.9",
     "pydantic-settings>=2.14.1",
     "supabase>=2.30.0",
+    # Phase 6 — agent pipeline
+    "langgraph>=0.2",
+    "scrapegraphai>=1.30",
+    "rapidfuzz>=3.10",
+    "numpy>=2.1",
+    "tiktoken>=0.8",
+    "langfuse>=2.50",   # optional at runtime; import is cheap
 ]
 
 [project.scripts]
 engine = "engine:main"
 smoke = "engine.scripts.smoke_test:main"
 embed_courses = "engine.scripts.embed_courses:main"
+agent = "engine.cli:main"
 
 [build-system]
 requires = ["uv_build>=0.9.21,<0.10.0"]
