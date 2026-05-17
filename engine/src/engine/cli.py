@@ -27,7 +27,9 @@ if hasattr(sys.stderr, "reconfigure"):
 from engine.agent.graph import build_graph
 from engine.agent.nodes.gap_analyze import rank_categories
 from engine.agent.nodes.inventory_read import load_inventory
+from engine.agent.nodes.research import research_one_category
 from engine.agent.state import AgentState
+from engine.llm.openrouter import OpenRouterClient, RunCostLedger
 
 # ── Logging setup ────────────────────────────────────────────────
 # UTC ISO timestamps + structured key=value lines, grep-able and
@@ -77,6 +79,50 @@ def _cmd_run(args: argparse.Namespace) -> int:
         "run end final_candidates=%d run_id=%s",
         len(final_state.get("final_candidates", []) or []),
         final_state.get("run_id"),
+    )
+    return 0
+
+
+# ── Subcommand: research ─────────────────────────────────────────
+DEFAULT_RESEARCH_MODEL = "deepseek/deepseek-chat-v3.1"
+
+
+def _cmd_research(args: argparse.Namespace) -> int:
+    """Run one category's research round-trip and print results."""
+    import json
+
+    ledger = RunCostLedger()
+    with OpenRouterClient(DEFAULT_RESEARCH_MODEL, ledger) as or_client:
+        candidates = research_one_category(
+            args.category,
+            max_candidates=int(args.max_candidates),
+            or_client=or_client,
+            ledger=ledger,
+        )
+
+    if args.raw_only:
+        print(
+            json.dumps(
+                [c.model_dump() for c in candidates],
+                indent=2,
+                default=str,
+            )
+        )
+    else:
+        for i, c in enumerate(candidates, 1):
+            print(f"\n--- candidate {i} ---")
+            print(f"  title:    {c.title}")
+            print(f"  price:    ${c.suggested_price_usd}")
+            print(f"  duration: {c.duration_days}d ({c.delivery_format})")
+            print(f"  refs:     {len(c.references)}")
+
+    log = logging.getLogger("agent.research")
+    log.info(
+        "research summary candidates=%d total_cost=$%0.4f tokens_in=%d tokens_out=%d",
+        len(candidates),
+        ledger.total_usd,
+        ledger.total_tokens_in,
+        ledger.total_tokens_out,
     )
     return 0
 
@@ -137,6 +183,19 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     p_gap.add_argument("--top-k", type=int, default=10)
     p_gap.set_defaults(func=_cmd_gap_analyze)
+
+    p_research = sub.add_parser(
+        "research",
+        help="Run a single category's Serper + LLM research round-trip.",
+    )
+    p_research.add_argument("--category", required=True)
+    p_research.add_argument("--max-candidates", type=int, default=12)
+    p_research.add_argument(
+        "--raw-only",
+        action="store_true",
+        help="Dump validated candidates as a JSON array instead of a summary.",
+    )
+    p_research.set_defaults(func=_cmd_research)
 
     return p
 
