@@ -9,11 +9,13 @@ Three-layer check (architectural plan §3.6):
   (c) LLM judge — a cheap Haiku-tier yes/no call via OpenRouter.
       Only runs if (a) and (b) both pass.
 
-Step 7 adds the rename loop: when (c) flags, re-prompt the research
-model once with the catch as context and ask for a neutral title;
-re-run a-c on the new title. Step 6 just exposes the catch via the
-dispatcher (the candidate is dropped); Step 7 will move the rename
-attempt into this module.
+Phase 8 Step 9b adds the rename loop. When layer (c) flags a title,
+we ask the research model to propose a neutral rename — capturing
+the same body of knowledge without naming the credential or
+certifying body. The rename runs back through layers (a)-(c). If
+the new title still fails, the candidate is dropped (the Phase 6
+fallback). Cap: one rename retry per candidate; recursion is
+explicitly bounded.
 
 Layer (c)'s result is cached per-title within the run so re-checks
 after rename don't double-bill.
@@ -115,18 +117,107 @@ def reset_cache() -> None:
     _judge_cache.clear()
 
 
+# ── Phase 8 Step 9b — rename loop ───────────────────────────────
+_RENAME_PROMPT_TEMPLATE = (
+    "The course title \"{title}\" was rejected for referencing a "
+    "specific certification, credential acronym, or certifying-body "
+    "name. Edstellar is not an authorised partner of these bodies.\n\n"
+    "Propose ONE neutral, descriptive replacement title that "
+    "captures the same body of knowledge without naming the "
+    "credential or issuer. Output only the new title, nothing else "
+    "— no quotes, no commentary, no preamble."
+)
+
+
+def _ask_rename(original_title: str, ctx) -> str | None:  # noqa: ANN001
+    """Ask the research model for a neutral rename. Returns the new title
+    or ``None`` on any failure. Never raises into the dispatcher."""
+    try:
+        completion = ctx.or_client.complete(
+            [{"role": "user", "content": _RENAME_PROMPT_TEMPLATE.format(title=original_title)}],
+            model=None,  # uses the client's default (the research model)
+            max_tokens=64,
+            temperature=0.3,
+            span="rule_10.rename",
+        )
+    except Exception as exc:  # noqa: BLE001 — rename failure ≠ rule failure
+        log.warning("rule_10.rename failed: %s", exc)
+        return None
+    new = completion.text.strip().strip('"').strip("'").strip()
+    # Defensive — sometimes the model adds a leading "Title: " prefix.
+    new = re.sub(r"^(?:title|new title|revised title)\s*:\s*", "", new, flags=re.IGNORECASE)
+    if not new or new == original_title:
+        return None
+    return new
+
+
 # ── Dispatcher entry point ──────────────────────────────────────
 def check(candidate: RawCandidate, ctx) -> "RuleResult":  # noqa: ANN001
     from engine.rules.dispatcher import RuleResult
 
     title = candidate.title
+    # Layers (a) + (b) are free; check them first.
     if (hit := _matches_blocklist(title)) is not None:
-        return RuleResult.failed(f"cert blocklist hit: {hit!r}")
+        return _try_rename_or_fail(
+            candidate, ctx, reason=f"cert blocklist hit: {hit!r}"
+        )
     if (hit := _matches_regex(title)) is not None:
-        return RuleResult.failed(f"cert regex hit: {hit}")
+        return _try_rename_or_fail(
+            candidate, ctx, reason=f"cert regex hit: {hit}"
+        )
     # Layer (c) only runs if a/b passed AND we have a client.
     if ctx.or_client is None:
         return RuleResult.passed()
     if _ask_llm_judge(title, ctx):
-        return RuleResult.failed("cert llm judge flagged")
+        return _try_rename_or_fail(
+            candidate, ctx, reason="cert llm judge flagged"
+        )
+    return RuleResult.passed()
+
+
+def _try_rename_or_fail(
+    candidate: RawCandidate, ctx, *, reason: str  # noqa: ANN001
+) -> "RuleResult":
+    """Phase 8 Step 9b — single rename retry, then drop on failure.
+
+    The candidate's title is mutated in place when the rename
+    succeeds. The dispatcher already has the candidate by reference
+    from RULE_ORDER, so the new title flows through subsequent rules
+    + persistence.
+    """
+    from engine.rules.dispatcher import RuleResult
+
+    # No client → can't rename, drop straight away.
+    if ctx.or_client is None:
+        return RuleResult.failed(reason)
+
+    original = candidate.title
+    new = _ask_rename(original, ctx)
+    if new is None:
+        return RuleResult.failed(f"{reason} (rename failed)")
+
+    # Re-run layers (a)-(c) against the new title.
+    if _matches_blocklist(new) is not None:
+        return RuleResult.failed(
+            f"{reason}; rename to {new!r} also blocklist-hit, dropped"
+        )
+    if _matches_regex(new) is not None:
+        return RuleResult.failed(
+            f"{reason}; rename to {new!r} also regex-hit, dropped"
+        )
+    if _ask_llm_judge(new, ctx):
+        return RuleResult.failed(
+            f"{reason}; rename to {new!r} also llm-judge-flagged, dropped"
+        )
+
+    # Rename survived all three layers — mutate the candidate so the
+    # rest of the pipeline (Rule 2 fuzzy check, persistence) sees the
+    # neutral title.
+    log.info(
+        "rule_10.rename salvaged title=%r -> %r (orig reason=%s)",
+        original,
+        new,
+        reason,
+    )
+    object.__setattr__(candidate, "title", new)
     return RuleResult.passed()

@@ -81,10 +81,10 @@ class RuleContext:
     ledger: Any  # RunCostLedger — for cost-aware fan-out
     embeddings_cache: dict[str, Any] = None  # type: ignore[assignment]
     # Cheap-tier yes/no judge for rule 10c + the ref-verifier (rule 7).
-    # Stays on the same OpenRouter slug as the primary research model
-    # for now — keeps Phase 6 portable to whatever model the smoke
-    # test verifies. Phase 8 will let admins swap this from /settings.
-    cert_judge_model: str = "deepseek/deepseek-chat-v3.1"
+    # Phase 8 Step 9c — confirmed `anthropic/claude-haiku-4-5` slug
+    # on OpenRouter (no date suffix). ~$0.000034 per yes/no call,
+    # roughly 5× cheaper than DeepSeek for the same task.
+    cert_judge_model: str = "anthropic/claude-haiku-4-5"
 
     def __post_init__(self) -> None:
         if self.embeddings_cache is None:

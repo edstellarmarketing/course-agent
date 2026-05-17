@@ -2,9 +2,11 @@
 
 Phase 6 implementation: fetch each URL with ``httpx``, strip HTML
 to readable text, then ask the LLM judge "does this page support
-the topic? yes / no / unsure". The candidate passes when ALL
-references come back as ``yes`` or ``unsure``; a single ``no`` is
-fatal.
+the topic? yes / no / unsure". Phase 8 Step 9a relaxed the fail
+condition to MAJORITY-VOTE — a candidate's refs survive unless
+``no_count >= ceil(N / 2)``. The original single-no-fails rule
+killed otherwise-credible candidates on a single LLM hiccup
+against authoritative sources like NIST or finops.org.
 
 Cost trade-off — Rule 7 is the most expensive rule on the path
 (roughly $0.003 / candidate at 3 refs). The dispatcher places it
@@ -106,6 +108,17 @@ def _judge_one(topic: str, ref_name: str, ref_url: str, ctx) -> str:  # noqa: AN
     return answer
 
 
+def majority_fail_threshold(total: int) -> int:
+    """Number of 'no' verdicts required to fail majority-vote.
+
+    Returns ceil(total / 2). Extracted so unit tests can verify the
+    arithmetic without spinning up a real LLM judge.
+    """
+    if total <= 0:
+        return 0
+    return (total + 1) // 2
+
+
 def check(candidate: RawCandidate, ctx) -> "RuleResult":  # noqa: ANN001
     from engine.rules.dispatcher import RuleResult
 
@@ -113,10 +126,30 @@ def check(candidate: RawCandidate, ctx) -> "RuleResult":  # noqa: ANN001
         return RuleResult.passed()
 
     topic = f"{candidate.title} — {candidate.rationale[:160]}"
+    yes = 0
+    no = 0
+    unsure = 0
+    no_urls: list[str] = []
     for ref in candidate.references:
         verdict = _judge_one(topic, ref.name, ref.url, ctx)
-        if verdict == "no":
-            return RuleResult.failed(
-                f"reference {ref.url} judged off-topic / broken"
-            )
+        if verdict == "yes":
+            yes += 1
+        elif verdict == "no":
+            no += 1
+            no_urls.append(ref.url)
+        else:
+            unsure += 1
+
+    # Phase 8 Step 9a — majority-vote: fail only when no_count >=
+    # ceil(N / 2). Three refs need >= 2 nos to fail; two refs need
+    # 1; four refs need 2. Keeps a single over-strict LLM verdict
+    # from killing an otherwise-credible candidate against
+    # authoritative sources (NIST, finops.org, Microsoft Zero Trust).
+    total = yes + no + unsure
+    threshold = majority_fail_threshold(total)
+    if no >= threshold and total > 0:
+        return RuleResult.failed(
+            f"refs majority-fail: yes={yes} no={no} unsure={unsure} "
+            f"(need {threshold} nos to fail); first off-topic={no_urls[0]}"
+        )
     return RuleResult.passed()
