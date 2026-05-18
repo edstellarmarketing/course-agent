@@ -1,0 +1,82 @@
+name: backup-schema
+
+# Phase 9 Step 7 — daily logical backup of just the "course-agent"
+# schema. Retention is 30 days, enforced at the bucket level (S3
+# lifecycle rule or R2 retention policy — set once outside this
+# workflow). Runs at 02:00 UTC, one hour BEFORE agent-daily, so a
+# bad nightly run can't corrupt the backup that captures the prior
+# day's data.
+on:
+  schedule:
+    - cron: "0 2 * * *"
+  workflow_dispatch:
+
+jobs:
+  dump:
+    runs-on: ubuntu-latest
+    environment: agent-production
+    timeout-minutes: 15
+    steps:
+      - name: Install pg_dump (postgresql-client-16)
+        # ubuntu-24.04 ships pg-client 16 in the default repo; pin
+        # major version because pg_dump must be >= server version.
+        # Self-hosted Supabase tracks Postgres 15+, so 16 is forward-
+        # compatible with both 15 and 16 servers.
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y postgresql-client-16
+          pg_dump --version
+
+      # Same DNS workaround as the other workflows — see
+      # .github/workflows/agent-daily.yml for the long-form
+      # rationale. The Postgres direct port (5432) lives on the
+      # same Coolify host as the REST endpoint, so the pinned IP
+      # works for both.
+      - name: Pin Supabase hostname → IP
+        run: |
+          echo "187.127.140.202 supabasekong-dfpiopwrqgdf8iods10d4546.187.127.140.202.sslip.io" | sudo tee -a /etc/hosts
+
+      - name: Dump course-agent schema
+        env:
+          # Full Postgres connection string. Format:
+          # postgresql://postgres:<password>@<host>:5432/postgres
+          # Must be the DIRECT connection, NOT the pooler — the
+          # pooler doesn't speak the replication protocol pg_dump
+          # needs. For Coolify-hosted Supabase, find this in
+          # Coolify -> the Supabase resource -> "Postgres direct
+          # connection string" (or read POSTGRES_PASSWORD from the
+          # supabase-db service env).
+          PGURL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          test -n "$PGURL" || { echo "SUPABASE_DB_URL secret not set"; exit 1; }
+          stamp=$(date -u +%Y%m%d)
+          # --no-owner / --no-acl strip role assignments that don't
+          # exist on a restore target. --schema is single-quoted to
+          # survive shell expansion of the hyphen.
+          pg_dump \
+            --schema='course-agent' \
+            --no-owner --no-acl \
+            "$PGURL" \
+            | gzip > "backup-${stamp}.sql.gz"
+          ls -lh "backup-${stamp}.sql.gz"
+
+      - name: Upload to S3-compatible bucket
+        env:
+          # Works for AWS S3 or Cloudflare R2 (R2 needs the
+          # --endpoint-url flag, plumbed below from
+          # S3_ENDPOINT_URL — leave blank for AWS S3 default).
+          AWS_ACCESS_KEY_ID:     ${{ secrets.BACKUP_AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.BACKUP_AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION:    ${{ vars.BACKUP_AWS_REGION }}
+          BUCKET:                ${{ vars.BACKUP_BUCKET }}
+          S3_ENDPOINT_URL:       ${{ vars.BACKUP_S3_ENDPOINT_URL }}
+        run: |
+          test -n "$AWS_ACCESS_KEY_ID" || { echo "BACKUP_AWS_ACCESS_KEY_ID secret not set"; exit 1; }
+          test -n "$BUCKET" || { echo "BACKUP_BUCKET variable not set"; exit 1; }
+          stamp=$(date -u +%Y%m%d)
+          extra=""
+          if [ -n "$S3_ENDPOINT_URL" ]; then
+            extra="--endpoint-url $S3_ENDPOINT_URL"
+          fi
+          aws $extra s3 cp "backup-${stamp}.sql.gz" "s3://${BUCKET}/backup-${stamp}.sql.gz"
+          aws $extra s3 ls "s3://${BUCKET}/" | tail -5
