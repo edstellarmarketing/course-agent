@@ -30,8 +30,10 @@ from engine.agent.nodes.inventory_read import load_inventory
 from engine.agent.nodes.research import research_one_category
 from engine.agent.state import AgentState
 from engine.config import settings
+from engine.llm.langfuse_hook import flush_langfuse, maybe_langfuse_trace
 from engine.llm.openrouter import OpenRouterClient, RunCostLedger
 from engine.rules.dispatcher import RunCostCeilingExceeded
+from engine.sentry import init_sentry
 
 # ── Logging setup ────────────────────────────────────────────────
 # UTC ISO timestamps + structured key=value lines, grep-able and
@@ -84,7 +86,13 @@ def _cmd_run(args: argparse.Namespace) -> int:
         )
         graph = build_graph()
         try:
-            final_state = graph.invoke(initial)
+            with maybe_langfuse_trace(
+                "agent.run",
+                dry_run=initial["dry_run"],
+                top_k=initial["top_k"],
+                forced_category=initial["forced_category"],
+            ):
+                final_state = graph.invoke(initial)
         except RunCostCeilingExceeded as exc:
             log.error("run aborted by cost ceiling: %s", exc)
             log.error(
@@ -93,6 +101,7 @@ def _cmd_run(args: argparse.Namespace) -> int:
                 ledger.total_tokens_in,
                 ledger.total_tokens_out,
             )
+            flush_langfuse()
             return 2
         log.info(
             "run end final_candidates=%d run_id=%s cost=$%.4f tokens_in=%d tokens_out=%d",
@@ -102,6 +111,7 @@ def _cmd_run(args: argparse.Namespace) -> int:
             ledger.total_tokens_in,
             ledger.total_tokens_out,
         )
+    flush_langfuse()
     return 0
 
 
@@ -224,6 +234,7 @@ def _build_parser() -> argparse.ArgumentParser:
 
 def main() -> int:
     args = _build_parser().parse_args()
+    init_sentry()
     _setup_logging(args.verbose)
     return args.func(args)
 

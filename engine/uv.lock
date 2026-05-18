@@ -495,6 +495,7 @@ dependencies = [
     { name = "pydantic-settings" },
     { name = "rapidfuzz" },
     { name = "scrapegraphai" },
+    { name = "sentry-sdk", extra = ["httpx"] },
     { name = "supabase" },
     { name = "tiktoken" },
 ]
@@ -510,13 +511,14 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "httpx", specifier = ">=0.28.1" },
-    { name = "langfuse", specifier = ">=2.50" },
+    { name = "langfuse", specifier = ">=4.6,<5" },
     { name = "langgraph", specifier = ">=0.2" },
     { name = "numpy", specifier = ">=2.1" },
     { name = "pydantic", specifier = ">=2.9" },
     { name = "pydantic-settings", specifier = ">=2.14.1" },
     { name = "rapidfuzz", specifier = ">=3.10" },
     { name = "scrapegraphai", specifier = ">=1.30" },
+    { name = "sentry-sdk", extras = ["httpx"], specifier = ">=2.20" },
     { name = "supabase", specifier = ">=2.30.0" },
     { name = "tiktoken", specifier = ">=0.8" },
 ]
@@ -2692,6 +2694,24 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/ee/d9/3206b435cc375452a075e49a928a6d0764cdfd9d693c4a9e7fce3d637548/semchunk-4.0.0.tar.gz", hash = "sha256:d1017b7572cfcb2337e6ba2cad8a7963716e8772463ba85a968d718496feec7e", size = 23222, upload-time = "2026-03-23T05:48:39.059Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/b4/d3/159cb53cfa520a2b8375aae3784a76e65baf3e96fea596eb388daa88c441/semchunk-4.0.0-py3-none-any.whl", hash = "sha256:77dba8b6bd533ede115708372463b3703dbf0075d3f4ac2af0f4f3ed7b6af795", size = 17722, upload-time = "2026-03-23T05:48:37.49Z" },
+]
+
+[[package]]
+name = "sentry-sdk"
+version = "2.60.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "certifi" },
+    { name = "urllib3" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/54/a2/2e6c090db384cc515069f4f85542bd5baf6786852073020ea73d4a76d3ea/sentry_sdk-2.60.0.tar.gz", hash = "sha256:0bd25e54e78ca02d0be512529fa644bbbf9e8470d7b26371294012d4ca93c978", size = 452946, upload-time = "2026-05-13T13:34:52.516Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/29/41/f2b800b7f12a05dd48c2a6280d4dd812d1425fc66ed3fe3fd99420c41d1a/sentry_sdk-2.60.0-py3-none-any.whl", hash = "sha256:28a536c03291c8bcb363cf35c611b32738ec118ff64d8d6383b096448ac4c803", size = 475616, upload-time = "2026-05-13T13:34:50.259Z" },
+]
+
+[package.optional-dependencies]
+httpx = [
+    { name = "httpx" },
 ]
 
 [[package]]

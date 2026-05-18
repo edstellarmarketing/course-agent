@@ -1,0 +1,49 @@
+name: agent-daily
+
+# Phase 9 — daily course-discovery agent run.
+# 03:00 UTC Mon-Sat keeps Sunday digest-free by design.
+# `workflow_dispatch` gives a manual "run now" button in the Actions UI.
+on:
+  schedule:
+    - cron: "0 3 * * 1-6"
+  workflow_dispatch:
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    # Scopes secrets so a stray fork PR can't read them. Toggle this
+    # environment in the GitHub UI to suspend nightly runs without
+    # deleting the workflow file.
+    environment: agent-production
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+
+      - name: Install engine dependencies
+        run: uv --directory engine sync
+
+      - name: Run agent
+        env:
+          # Required — Supabase + LLM gateway + embeddings + search
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          VOYAGE_API_KEY: ${{ secrets.VOYAGE_API_KEY }}
+          SERPER_API_KEY: ${{ secrets.SERPER_API_KEY }}
+
+          # Observability (Phase 9)
+          LANGFUSE_PUBLIC_KEY: ${{ secrets.LANGFUSE_PUBLIC_KEY }}
+          LANGFUSE_SECRET_KEY: ${{ secrets.LANGFUSE_SECRET_KEY }}
+          LANGFUSE_HOST: ${{ secrets.LANGFUSE_HOST }}
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN_ENGINE }}
+
+          # Engine -> app webhook (Phase 7) — optional; the run still
+          # completes if these are unset, just no Slack/digest ping.
+          INTERNAL_WEBHOOK_URL: ${{ secrets.INTERNAL_WEBHOOK_URL }}
+          INTERNAL_WEBHOOK_SECRET: ${{ secrets.INTERNAL_WEBHOOK_SECRET }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: uv --directory engine run agent run --top-k 5 --max-candidates 12

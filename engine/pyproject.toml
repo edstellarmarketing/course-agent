@@ -18,7 +18,9 @@ dependencies = [
     "rapidfuzz>=3.10",
     "numpy>=2.1",
     "tiktoken>=0.8",
-    "langfuse>=2.50",   # optional at runtime; import is cheap
+    "langfuse>=4.6,<5",   # Phase 9 — pinned to the API we depend on
+    # Phase 9 — observability
+    "sentry-sdk[httpx]>=2.20",
 ]
 
 [project.scripts]
