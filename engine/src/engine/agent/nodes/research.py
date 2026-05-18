@@ -64,13 +64,27 @@ def _build_user_prompt(
     category: str,
     serper_hits: list[dict[str, str]],
     max_candidates: int,
+    existing_categories: list[str] | None = None,
 ) -> str:
     hits_block = "\n".join(
         f"- {h['title']} — {h['link']}\n  {h['snippet']}"
         for h in serper_hits
     ) or "(no search results returned)"
+
+    if existing_categories:
+        cats_block = "\n".join(f"  - {c}" for c in sorted(existing_categories))
+        cats_section = (
+            "Edstellar's existing categories (use one of these for the candidate's "
+            "`category` field unless you're deliberately proposing a brand-new "
+            "category — see rule 6 in the system prompt for when that's allowed):\n\n"
+            f"{cats_block}\n\n"
+        )
+    else:
+        cats_section = ""
+
     return (
         f"Category to research: {category}\n\n"
+        f"{cats_section}"
         f"Recent search results to use as market evidence (cite plausibly in price_basis "
         f"and references when relevant; you may also propose ideas the search didn't surface):\n\n"
         f"{hits_block}\n\n"
@@ -143,6 +157,7 @@ def research_one_category(
     or_client: OpenRouterClient,
     ledger: RunCostLedger,
     system_prompt_base: str | None = None,
+    existing_categories: list[str] | None = None,
 ) -> list[RawCandidate]:
     """Run one Serper + LLM round-trip and return validated candidates.
 
@@ -176,7 +191,9 @@ def research_one_category(
     if few_shot.has_examples:
         messages.append({"role": "system", "content": few_shot.as_prompt_text()})
 
-    user_prompt = _build_user_prompt(category, hits, max_candidates)
+    user_prompt = _build_user_prompt(
+        category, hits, max_candidates, existing_categories=existing_categories
+    )
     messages.append({"role": "user", "content": user_prompt})
 
     completion = or_client.complete(
@@ -226,6 +243,7 @@ def research_one_node(state: AgentState) -> AgentState:
 
     max_candidates = state.get("max_candidates_per_category", 20)
     system_prompt_base = state.get("_prompt_system_text") or None  # type: ignore[typeddict-item]
+    existing_categories = state.get("_existing_categories") or None  # type: ignore[typeddict-item]
 
     cands = research_one_category(
         category,
@@ -233,6 +251,7 @@ def research_one_node(state: AgentState) -> AgentState:
         or_client=or_client,
         ledger=ledger,
         system_prompt_base=system_prompt_base,
+        existing_categories=existing_categories,
     )
     return {"raw_candidates": [c.model_dump() for c in cands]}
 

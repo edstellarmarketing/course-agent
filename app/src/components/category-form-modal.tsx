@@ -40,9 +40,12 @@ export function CategoryFormModal({
   const dialogRef = useRef<HTMLDialogElement>(null);
 
   const [name, setName] = useState(initialValues?.name ?? "");
-  const [targetCount, setTargetCount] = useState<number>(
-    initialValues?.targetCount ?? 30,
-  );
+  // Phase 9 update — target_count is no longer used by gap_analyze
+  // (the agent derives an implicit target from the inventory's
+  // distribution). The DB column still exists but the UI no longer
+  // exposes it; we preserve whatever value already lives there on
+  // edit, and pass null on add.
+  const targetCount = initialValues?.targetCount ?? null;
   const [demandScore, setDemandScore] = useState<number>(
     initialValues?.demandScore ?? 0.5,
   );
@@ -62,10 +65,9 @@ export function CategoryFormModal({
     trimmed.length > 0 &&
     existingNames.some((n) => n.toLowerCase() === trimmed.toLowerCase());
   const nameValid = trimmed.length >= 3 && !isDuplicate;
-  const targetValid = Number.isFinite(targetCount) && targetCount > 0;
   const demandValid =
     Number.isFinite(demandScore) && demandScore >= 0 && demandScore <= 1;
-  const isValid = nameValid && targetValid && demandValid;
+  const isValid = nameValid && demandValid;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -90,14 +92,12 @@ export function CategoryFormModal({
       : isDuplicate
         ? "A category with this name already exists."
         : "Category names need at least 3 characters."
-    : !targetValid
-      ? "Target count must be a positive number."
-      : !demandValid
-        ? "Demand score should be between 0 and 1."
-        : null;
+    : !demandValid
+      ? "Demand score should be between 0 and 1."
+      : null;
 
   const title = isEdit ? "Edit category" : "Add a category for the agent to target";
-  const eyebrow = isEdit ? "Admin · adjust targets" : "Admin · expand catalogue";
+  const eyebrow = isEdit ? "Admin · adjust" : "Admin · expand catalogue";
   const submitLabel = isEdit ? "Save changes" : "Add category";
 
   return (
@@ -120,7 +120,7 @@ export function CategoryFormModal({
           </h2>
           <p className="mt-1 text-xs text-gray-500">
             {isEdit
-              ? "Adjust the target portfolio size and demand hint. The gap analyzer reads these on the next agent run."
+              ? "Adjust the demand hint and pin status. The gap analyzer derives the under-supply target automatically from the inventory."
               : "New categories start with zero courses. Pin them and the agent will prioritise filling the gap on the next run."}
           </p>
         </header>
@@ -151,49 +151,26 @@ export function CategoryFormModal({
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label
-                htmlFor="category-target"
-                className="block font-display text-[10px] font-semibold uppercase tracking-widest text-gray-500"
-              >
-                Target course count
-              </label>
-              <input
-                id="category-target"
-                type="number"
-                min={1}
-                step={1}
-                value={targetCount}
-                onChange={(e) => setTargetCount(Number(e.target.value))}
-                className="mt-1.5 w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-800 focus:border-navy focus:outline-none focus:ring-2 focus:ring-navy/15"
-              />
-              <p className="mt-1 text-[11px] text-gray-500">
-                How many courses you eventually want here.
-              </p>
-            </div>
-
-            <div>
-              <label
-                htmlFor="category-demand"
-                className="block font-display text-[10px] font-semibold uppercase tracking-widest text-gray-500"
-              >
-                Demand score (0–1)
-              </label>
-              <input
-                id="category-demand"
-                type="number"
-                min={0}
-                max={1}
-                step="any"
-                value={demandScore}
-                onChange={(e) => setDemandScore(Number(e.target.value))}
-                className="mt-1.5 w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-800 focus:border-navy focus:outline-none focus:ring-2 focus:ring-navy/15"
-              />
-              <p className="mt-1 text-[11px] text-gray-500">
-                Phase 3 will pull this from external signals; set a hint for now.
-              </p>
-            </div>
+          <div>
+            <label
+              htmlFor="category-demand"
+              className="block font-display text-[10px] font-semibold uppercase tracking-widest text-gray-500"
+            >
+              Demand score (0–1)
+            </label>
+            <input
+              id="category-demand"
+              type="number"
+              min={0}
+              max={1}
+              step="any"
+              value={demandScore}
+              onChange={(e) => setDemandScore(Number(e.target.value))}
+              className="mt-1.5 w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-800 focus:border-navy focus:outline-none focus:ring-2 focus:ring-navy/15"
+            />
+            <p className="mt-1 text-[11px] text-gray-500">
+              Multiplier on the under-supply score. Higher = the agent picks this category sooner when the gap is similar.
+            </p>
           </div>
 
           <label className="flex items-start gap-3 rounded-md border border-gray-100 bg-off-white p-3">

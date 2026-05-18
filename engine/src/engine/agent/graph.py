@@ -65,6 +65,13 @@ def _research_router(state: AgentState) -> list[Send] | str:
     prompt_text = state.get("_prompt_system_text")  # type: ignore[typeddict-item]
     max_candidates = state.get("max_candidates_per_category", 20)
 
+    # Existing category names so each research_one branch can decide
+    # when a candidate would represent a brand-new category vs a
+    # duplicate of something already in the inventory.
+    existing_category_names = [
+        c["name"] for c in (state.get("categories") or []) if c.get("name")
+    ]
+
     log.info("research_router: fanning out %d categories in parallel", len(targets))
     return [
         Send(
@@ -75,6 +82,7 @@ def _research_router(state: AgentState) -> list[Send] | str:
                 "_ledger": ledger,
                 "_prompt_system_text": prompt_text,
                 "max_candidates_per_category": max_candidates,
+                "_existing_categories": existing_category_names,
             },
         )
         for c in targets

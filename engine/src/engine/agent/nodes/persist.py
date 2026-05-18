@@ -109,6 +109,55 @@ def _vector_to_pg_string(vec: np.ndarray) -> str:
     return "[" + ",".join(f"{x:.6f}" for x in vec.tolist()) + "]"
 
 
+def _ensure_categories_exist(survivors: list[dict[str, Any]]) -> set[str]:
+    """Auto-create category rows for any agent-proposed category that
+    doesn't already exist in the categories table.
+
+    Returns the set of newly-created category names so the caller can
+    log them. Categories already present are no-ops.
+
+    The service-role client bypasses RLS, so this insert works even
+    though the categories_admin_write policy gates session writes.
+
+    Phase 9 — research_one is allowed to propose brand-new categories
+    (rule 6 carve-out in the system prompt). Without this step those
+    categories would be orphaned: visible on suggestions but missing
+    from categories_with_counts, which means future gap_analyze runs
+    wouldn't know to target them again.
+    """
+    if not survivors:
+        return set()
+    proposed = {c["category"] for c in survivors if c.get("category")}
+    if not proposed:
+        return set()
+
+    sb = supabase()
+    existing_rows = (
+        sb.table("categories")
+        .select("name")
+        .in_("name", list(proposed))
+        .execute()
+        .data
+        or []
+    )
+    existing = {r["name"] for r in existing_rows}
+    new_names = proposed - existing
+    if not new_names:
+        return set()
+
+    new_rows = [
+        {
+            "name": name,
+            "is_pinned": False,
+            "notes": "Auto-created by agent — proposed during research as a new category.",
+        }
+        for name in new_names
+    ]
+    sb.table("categories").insert(new_rows).execute()
+    log.info("persist: auto-created %d new categories: %s", len(new_names), sorted(new_names))
+    return new_names
+
+
 def _insert_suggestions(
     survivors: list[dict[str, Any]],
     *,
@@ -197,6 +246,10 @@ def run(state: AgentState) -> AgentState:
         tokens_out=ledger.total_tokens_out if ledger else 0,
         cost_usd=ledger.total_usd if ledger else 0.0,
     )
+
+    # Pre-flight: any new categories the agent proposed get a row in
+    # the categories table so future gap_analyze runs see them.
+    _ensure_categories_exist(finals)
 
     inserted = _insert_suggestions(
         finals,

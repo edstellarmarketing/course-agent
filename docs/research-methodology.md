@@ -227,6 +227,67 @@ self-honesty bar.)
 
 ---
 
+## Proposing new categories
+
+Rule 6 has a deliberate carve-out: the agent **may propose a
+brand-new category** for a candidate when it identifies a
+substantial training gap that doesn't fit any of Edstellar's
+existing categories. The categories list is included in the user
+prompt at run time, so the agent knows which names are already
+taken.
+
+When the agent proposes a new category, it must commit:
+
+- ≥2 candidates in the same new category within the same
+  response. A lone-novel category isn't worth a reviewer's
+  triage time and provides no signal about whether the category
+  is worth committing to.
+- The new category name should look like an existing one — Title
+  Case, short, descriptive (e.g. "Quantum-Safe Cryptography"),
+  not a sentence or hyphenated tag.
+- The candidate is NOT a sub-theme of an existing category. Those
+  go in `proposed_subcategory` under the parent.
+- The rationale briefly says why this needed a new category.
+
+When the persist node sees a candidate with a category that
+doesn't exist in `course-agent.categories`, it **auto-creates the
+row** (via the service-role client) so future gap_analyze runs
+recognize it. The auto-created row has `notes = "Auto-created by
+agent — proposed during research as a new category."` so an admin
+reviewing `/categories` can see how it got there.
+
+## Picking which categories to research
+
+The `gap_analyze` node decides which categories the next agent
+run should target (the `--top-k N` setting controls how many).
+
+Phase 9 dropped the admin-set `target_count` field in favor of
+an **implicit target derived from the inventory distribution**:
+
+- Take the 75th-percentile course count across all categories
+- Floor it at 10 (so a tiny catalogue still produces gradient)
+- That number is the "well-stocked" line
+- Categories below it score `(target - course_count) × demand_score`
+- Pinned categories get a +1000 bonus that wins regardless
+
+The intuition: a category is "well-stocked" once its count is
+at-or-above the top quartile of all categories. Everything else
+is fair game for the agent to research. The target adjusts
+automatically as the catalogue grows.
+
+Admins keep two explicit levers in this scheme:
+
+- `categories.is_pinned` — always research this one regardless
+  of score
+- `categories.demand_score` — multiplier on the gap, so a
+  strong-demand category outranks a weak-demand one with the
+  same gap
+
+The previously-supported `categories.target_count` column is no
+longer consulted. Existing values in the DB stay (no migration to
+drop the column) but are ignored. The admin UI no longer exposes
+the input.
+
 ## The 10 hard constraints
 
 These are the rules in the system prompt. Every candidate must
@@ -241,7 +302,7 @@ for Rule 7, blocklist match for Rule 10).
 | 3 | Suggested price strictly > $2,500 USD | LLM + `RawCandidate` validator |
 | 4 | Delivery format MUST be "instructor-led" | LLM + validator |
 | 5 | Price defensible via ≥2 competitor data points in `price_basis` | LLM only |
-| 6 | Proposed category must match the one being researched | LLM + post-validation |
+| 6 | Proposed category should match the one being researched; new categories allowed when ≥2 candidates share them | LLM + post-validation; persist auto-creates new-category rows |
 | 7 | At least 3 references; URLs supporting demand or pricing | LLM + `rule_07.ref_verify` (fetches each URL, asks an LLM judge to assess relevance) |
 | 8 | Sources may be global — no region restriction | LLM only |
 | 9 | Avoid declining topics; favour rising 12-month demand | LLM only; Research Methodology section above is how the agent tells the difference |

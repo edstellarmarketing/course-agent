@@ -112,3 +112,10 @@ class AgentState(TypedDict, total=False):
     # it emits one Send per targeted category. The `research_one_node`
     # reads this and processes exactly that category.
     _branch_category: str
+
+    # ── Existing-category list for new-category proposals ───────
+    # research_one passes this to the LLM so it can identify whether
+    # a proposed `category` value would be brand new (signalling a
+    # legitimate gap) vs duplicating something Edstellar already
+    # tracks. The router populates it from `state["categories"]`.
+    _existing_categories: list[str]

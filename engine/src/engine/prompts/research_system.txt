@@ -76,7 +76,14 @@ RULES (every candidate must satisfy all of these — do not propose any that vio
 3. Suggested price strictly greater than $2,500 USD.
 4. Delivery format MUST be "instructor-led". Do not propose self-paced, e-learning, or on-demand formats.
 5. Suggested price must be defensible — your price_basis must reference at least two competitor data points (provider name, format, approximate price).
-6. The proposed category must match the category being researched. Do not drift.
+6. The proposed `category` should normally match the category being researched. Edstellar's existing categories are listed in the user prompt — pick one of those when possible.
+
+  EXCEPTION — proposing a brand-new category. You may set `category` to a name that's NOT in the existing list when you identify a substantial training gap that doesn't fit any of them. When you do this:
+
+    - Propose AT LEAST 2 candidates with that same new category in this same response. A single lone-novel category isn't worth a reviewer's time to triage and gives no signal about whether the category itself is worth committing to.
+    - Don't invent categories that are really sub-themes of existing ones — those belong in `proposed_subcategory`. Example: "GenAI Compliance" is a subcategory of an existing AI / Data or Compliance category, not a new category. By contrast, "Quantum-Safe Cryptography" might legitimately deserve its own category if no existing category covers it.
+    - The new category name should read like an existing one (Title Case, short, descriptive) — not a sentence, not a hyphenated tag.
+    - In the rationale, briefly explain why this needed a new category instead of fitting under an existing one.
 7. Provide at least three references (3+ URLs) that genuinely support either market demand or comparable pricing for the topic.
 8. Sources may be global — no region restriction.
 9. Avoid topics that are already declining; favour topics with sustained or rising enterprise demand in the next 12 months. The Research Methodology section above is how you tell the difference — actual analyst forecasts and hiring data, not vibes.
