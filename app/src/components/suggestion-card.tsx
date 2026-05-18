@@ -75,300 +75,362 @@ export function SuggestionCard({
   const pitch = suggestion.edstellarPitch?.trim() ?? "";
 
   return (
-    <article
+    <details
       className={cn(
-        "grid grid-cols-1 gap-6 rounded-lg border border-gray-100 bg-white p-6 shadow-sm xl:grid-cols-[1.6fr_1fr]",
+        "group rounded-lg border border-gray-100 bg-white shadow-sm transition-colors open:border-orange-pale",
         className,
       )}
     >
-      <div className="min-w-0">
-        <div className="flex flex-wrap items-center gap-2 font-display text-[10px] font-semibold uppercase tracking-widest text-gray-400">
-          <span className="rounded-full bg-navy-soft px-2 py-0.5 text-navy">
+      {/*
+        Collapsed-by-default summary row. Shows title + at-a-glance metrics so
+        a reviewer can scan the queue and decide which card to expand. The
+        Tailwind `marker:hidden` strips the native disclosure triangle; we
+        render our own ▸/▾ that flips on `[open]`.
+      */}
+      <summary className="cursor-pointer list-none px-5 py-4 marker:hidden [&::-webkit-details-marker]:hidden">
+        <div className="flex items-center gap-3">
+          <span
+            aria-hidden
+            className="font-mono text-sm text-gray-400 transition-transform group-open:rotate-90"
+          >
+            ▸
+          </span>
+          <span className="rounded-full bg-navy-soft px-2 py-0.5 font-display text-[10px] font-semibold uppercase tracking-widest text-navy">
             {suggestion.category}
           </span>
-          {suggestion.proposedSubcategory && (
-            <span className="text-gray-400">{suggestion.proposedSubcategory}</span>
-          )}
-        </div>
-
-        <h3 className="mt-2 font-display text-xl font-semibold leading-tight text-navy-deep">
-          <Link
-            href={`/suggestions/${suggestion.id}`}
-            className="hover:text-navy"
-          >
+          <h3 className="min-w-0 flex-1 truncate font-display text-base font-semibold text-navy-deep group-open:text-orange">
             {suggestion.title}
-          </Link>
-        </h3>
-
-        <p className="mt-3 text-sm leading-relaxed text-gray-600">
-          {suggestion.rationale}
-        </p>
-
-        <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-2 text-sm sm:grid-cols-3">
-          <Fact label="Audience" value={suggestion.targetAudience} />
-          <Fact label="Duration" value={formatDuration(suggestion)} />
-          <Fact label="Format" value={suggestion.deliveryFormat} />
-          <Fact
-            label="Per-seat price"
-            value={
-              <span className="font-mono font-semibold text-navy-deep">
-                {dollarsUsd(suggestion.suggestedPriceUsd)}
-              </span>
-            }
-          />
-        </dl>
-
-        {packageFit && (
-          <div className="mt-4 rounded-md border border-gray-100 bg-off-white p-4">
-            <div className="flex flex-wrap items-baseline gap-2">
-              <span className="font-display text-[10px] font-semibold uppercase tracking-widest text-orange">
-                Package fit
-              </span>
+          </h3>
+          <div className="hidden items-center gap-2 sm:flex">
+            <MetaChip>{formatDuration(suggestion)}</MetaChip>
+            {packageFit && (
               <span
                 className={cn(
-                  "rounded-full px-2 py-0.5 font-display text-[11px] font-semibold uppercase tracking-wider",
+                  "rounded-full px-2 py-0.5 font-display text-[10px] font-semibold uppercase tracking-wider",
                   PACKAGE_TONE[packageFit.primaryPackage] ??
                     "bg-gray-100 text-gray-700",
                 )}
               >
                 {packageFit.primaryPackage}
               </span>
-            </div>
-
-            <div className="mt-3 grid grid-cols-1 gap-3 text-sm sm:grid-cols-3">
-              <div className="rounded-md border border-gray-100 bg-white p-3">
-                <div className="font-display text-[10px] font-semibold uppercase tracking-widest text-gray-500">
-                  Licenses for a group of 10
-                </div>
-                <div className="mt-1 font-mono text-lg font-bold text-navy-deep">
-                  {packageFit.licensesPerBatchOf10}
-                </div>
-                <div className="mt-0.5 font-mono text-[10px] text-gray-400">
-                  {packageFit.licenseMath}
-                </div>
-              </div>
-              <div className="rounded-md border border-gray-100 bg-white p-3">
-                <div className="font-display text-[10px] font-semibold uppercase tracking-widest text-gray-500">
-                  Estimated cost for a batch of 10
-                </div>
-                <div className="mt-1 font-mono text-lg font-bold text-navy-deep">
-                  {dollarsUsd(suggestion.suggestedPriceUsd * 10)}
-                </div>
-                <div className="mt-0.5 font-mono text-[10px] text-gray-400">
-                  {dollarsUsd(suggestion.suggestedPriceUsd)} / seat × 10
-                </div>
-              </div>
-              <div className="rounded-md border border-gray-100 bg-white p-3">
-                <div className="font-display text-[10px] font-semibold uppercase tracking-widest text-gray-500">
-                  Bank utilisation
-                </div>
-                <div className="mt-1 font-mono text-lg font-bold text-navy-deep">
-                  {bankUtilisation(packageFit)}
-                </div>
-                <div className="mt-0.5 font-mono text-[10px] text-gray-400">
-                  of the {packageFit.primaryPackage} license bank
-                </div>
-              </div>
-            </div>
-
-            <p className="mt-3 text-sm leading-relaxed text-gray-700">
-              {packageFit.packageRationale}
-            </p>
+            )}
+            <span className="font-mono text-xs text-gray-700">
+              {dollarsUsd(suggestion.suggestedPriceUsd)}/seat
+            </span>
           </div>
-        )}
-
-        <div className="mt-3 rounded-md border border-gray-100 bg-off-white p-3 text-xs leading-relaxed text-gray-600">
-          <span className="font-display font-semibold uppercase tracking-wider text-gray-500">
-            Price basis ·{" "}
-          </span>
-          {suggestion.priceBasis}
         </div>
+      </summary>
 
-        {pitch && (
-          <div className="mt-4 rounded-md border border-orange/30 bg-orange/5 p-3">
-            <div className="font-display text-[10px] font-semibold uppercase tracking-widest text-orange">
-              Why Edstellar should build this
+      {/*
+        Expanded body — everything that was previously the card content,
+        unchanged. Renders only when the <details> is open.
+      */}
+      <div className="grid grid-cols-1 gap-6 border-t border-gray-100 px-6 py-5 xl:grid-cols-[1.6fr_1fr]">
+        <div className="min-w-0">
+          {suggestion.proposedSubcategory && (
+            <div className="font-display text-[10px] font-semibold uppercase tracking-widest text-gray-400">
+              {suggestion.proposedSubcategory}
             </div>
-            <p className="mt-1 text-sm leading-relaxed text-gray-700">{pitch}</p>
-          </div>
-        )}
+          )}
 
-        {outline.length > 0 && (
-          <details className="mt-4 rounded-md border border-gray-100 bg-white">
-            <summary className="cursor-pointer list-none px-4 py-3 font-display text-[11px] font-semibold uppercase tracking-widest text-navy-deep">
-              ▸ Content outline · {outline.length} module
-              {outline.length === 1 ? "" : "s"}
-            </summary>
-            <ol className="space-y-3 border-t border-gray-100 px-4 py-3 text-sm">
-              {outline.map((m, i) => (
-                <li key={`${i}-${m.module}`}>
-                  <div className="font-medium text-navy-deep">
-                    {i + 1}. {m.module}
+          <h3 className="mt-1 font-display text-xl font-semibold leading-tight text-navy-deep sm:hidden">
+            <Link
+              href={`/suggestions/${suggestion.id}`}
+              className="hover:text-navy"
+            >
+              {suggestion.title}
+            </Link>
+          </h3>
+
+          <p className="mt-2 text-sm leading-relaxed text-gray-600">
+            {suggestion.rationale}
+          </p>
+
+          <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-2 text-sm sm:grid-cols-3">
+            <Fact label="Audience" value={suggestion.targetAudience} />
+            <Fact label="Duration" value={formatDuration(suggestion)} />
+            <Fact label="Format" value={suggestion.deliveryFormat} />
+            <Fact
+              label="Per-seat price"
+              value={
+                <span className="font-mono font-semibold text-navy-deep">
+                  {dollarsUsd(suggestion.suggestedPriceUsd)}
+                </span>
+              }
+            />
+          </dl>
+
+          {packageFit && (
+            <div className="mt-4 rounded-md border border-gray-100 bg-off-white p-4">
+              <div className="flex flex-wrap items-baseline gap-2">
+                <span className="font-display text-[10px] font-semibold uppercase tracking-widest text-orange">
+                  Package fit
+                </span>
+                <span
+                  className={cn(
+                    "rounded-full px-2 py-0.5 font-display text-[11px] font-semibold uppercase tracking-wider",
+                    PACKAGE_TONE[packageFit.primaryPackage] ??
+                      "bg-gray-100 text-gray-700",
+                  )}
+                >
+                  {packageFit.primaryPackage}
+                </span>
+              </div>
+
+              <div className="mt-3 grid grid-cols-1 gap-3 text-sm sm:grid-cols-3">
+                <div className="rounded-md border border-gray-100 bg-white p-3">
+                  <div className="font-display text-[10px] font-semibold uppercase tracking-widest text-gray-500">
+                    Licenses for a group of 10
                   </div>
-                  {m.topics.length > 0 && (
-                    <ul className="mt-1 ml-4 list-disc space-y-0.5 text-[13px] text-gray-600">
-                      {m.topics.map((t) => (
-                        <li key={t}>{t}</li>
-                      ))}
-                    </ul>
+                  <div className="mt-1 font-mono text-lg font-bold text-navy-deep">
+                    {packageFit.licensesPerBatchOf10}
+                  </div>
+                  <div className="mt-0.5 font-mono text-[10px] text-gray-400">
+                    {packageFit.licenseMath}
+                  </div>
+                </div>
+                <div className="rounded-md border border-gray-100 bg-white p-3">
+                  <div className="font-display text-[10px] font-semibold uppercase tracking-widest text-gray-500">
+                    Estimated cost for a batch of 10
+                  </div>
+                  <div className="mt-1 font-mono text-lg font-bold text-navy-deep">
+                    {dollarsUsd(suggestion.suggestedPriceUsd * 10)}
+                  </div>
+                  <div className="mt-0.5 font-mono text-[10px] text-gray-400">
+                    {dollarsUsd(suggestion.suggestedPriceUsd)} / seat × 10
+                  </div>
+                </div>
+                <div className="rounded-md border border-gray-100 bg-white p-3">
+                  <div className="font-display text-[10px] font-semibold uppercase tracking-widest text-gray-500">
+                    Bank utilisation
+                  </div>
+                  <div className="mt-1 font-mono text-lg font-bold text-navy-deep">
+                    {bankUtilisation(packageFit)}
+                  </div>
+                  <div className="mt-0.5 font-mono text-[10px] text-gray-400">
+                    of the {packageFit.primaryPackage} license bank
+                  </div>
+                </div>
+              </div>
+
+              <p className="mt-3 text-sm leading-relaxed text-gray-700">
+                {packageFit.packageRationale}
+              </p>
+            </div>
+          )}
+
+          <div className="mt-3 rounded-md border border-gray-100 bg-off-white p-3 text-xs leading-relaxed text-gray-600">
+            <span className="font-display font-semibold uppercase tracking-wider text-gray-500">
+              Price basis ·{" "}
+            </span>
+            {suggestion.priceBasis}
+          </div>
+
+          {pitch && (
+            <div className="mt-4 rounded-md border border-orange/30 bg-orange/5 p-3">
+              <div className="font-display text-[10px] font-semibold uppercase tracking-widest text-orange">
+                Why Edstellar should build this
+              </div>
+              <p className="mt-1 text-sm leading-relaxed text-gray-700">{pitch}</p>
+            </div>
+          )}
+
+          {outline.length > 0 && (
+            <details className="mt-4 rounded-md border border-gray-100 bg-white">
+              <summary className="cursor-pointer list-none px-4 py-3 font-display text-[11px] font-semibold uppercase tracking-widest text-navy-deep">
+                ▸ Content outline · {outline.length} module
+                {outline.length === 1 ? "" : "s"}
+              </summary>
+              <ol className="space-y-3 border-t border-gray-100 px-4 py-3 text-sm">
+                {outline.map((m, i) => (
+                  <li key={`${i}-${m.module}`}>
+                    <div className="font-medium text-navy-deep">
+                      {i + 1}. {m.module}
+                    </div>
+                    {m.topics.length > 0 && (
+                      <ul className="mt-1 ml-4 list-disc space-y-0.5 text-[13px] text-gray-600">
+                        {m.topics.map((t) => (
+                          <li key={t}>{t}</li>
+                        ))}
+                      </ul>
+                    )}
+                  </li>
+                ))}
+              </ol>
+            </details>
+          )}
+
+          {labs && (
+            <details className="mt-3 rounded-md border border-gray-100 bg-white">
+              <summary className="flex cursor-pointer items-center justify-between gap-2 px-4 py-3">
+                <div className="flex items-center gap-2">
+                  <span className="font-display text-[11px] font-semibold uppercase tracking-widest text-navy-deep">
+                    Lab requirements
+                  </span>
+                  {labs.required ? (
+                    <span className="rounded-full bg-amber-soft px-2 py-0.5 font-display text-[10px] font-semibold uppercase tracking-wider text-amber-700">
+                      Required
+                    </span>
+                  ) : (
+                    <span className="rounded-full bg-gray-100 px-2 py-0.5 font-display text-[10px] font-semibold uppercase tracking-wider text-gray-500">
+                      Theory-only
+                    </span>
+                  )}
+                </div>
+                {labs.required && (
+                  <span className="font-mono text-[11px] text-gray-500">
+                    {labs.platforms.length} platform
+                    {labs.platforms.length === 1 ? "" : "s"} ·{" "}
+                    {labs.tools.length} tool{labs.tools.length === 1 ? "" : "s"}
+                  </span>
+                )}
+              </summary>
+              {labs.required && (
+                <div className="grid grid-cols-1 gap-3 border-t border-gray-100 px-4 py-3 text-sm md:grid-cols-2">
+                  <div>
+                    <div className="font-display text-[10px] font-semibold uppercase tracking-widest text-gray-500">
+                      Platforms
+                    </div>
+                    {labs.platforms.length > 0 ? (
+                      <ul className="mt-1 list-disc pl-4 text-[13px] text-gray-700">
+                        {labs.platforms.map((p) => (
+                          <li key={p}>{p}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="mt-1 text-[12px] text-gray-400">None specified.</p>
+                    )}
+                  </div>
+                  <div>
+                    <div className="font-display text-[10px] font-semibold uppercase tracking-widest text-gray-500">
+                      Tools
+                    </div>
+                    {labs.tools.length > 0 ? (
+                      <ul className="mt-1 list-disc pl-4 text-[13px] text-gray-700">
+                        {labs.tools.map((t) => (
+                          <li key={t}>{t}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="mt-1 text-[12px] text-gray-400">None specified.</p>
+                    )}
+                  </div>
+                  {labs.notes && (
+                    <div className="md:col-span-2">
+                      <div className="font-display text-[10px] font-semibold uppercase tracking-widest text-gray-500">
+                        Delivery notes
+                      </div>
+                      <p className="mt-1 text-[13px] leading-relaxed text-gray-700">
+                        {labs.notes}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </details>
+          )}
+
+          <div className="mt-4">
+            <div className="mb-1.5 font-display text-[10px] font-semibold uppercase tracking-widest text-gray-500">
+              References · {suggestion.references.length}
+            </div>
+            <ul className="space-y-2">
+              {suggestion.references.map((ref) => (
+                <li
+                  key={ref.url}
+                  className="rounded-md border border-gray-100 bg-white p-3"
+                >
+                  <a
+                    href={ref.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex max-w-full items-center gap-1.5 text-sm font-medium text-navy-deep transition-colors hover:text-orange"
+                  >
+                    <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-orange" />
+                    <span className="truncate">{ref.name}</span>
+                    <span className="text-[10px] text-gray-400">↗</span>
+                  </a>
+                  <div className="mt-0.5 truncate font-mono text-[10px] text-gray-400">
+                    {ref.url}
+                  </div>
+                  {ref.quote && (
+                    <blockquote className="mt-2 border-l-2 border-orange-pale pl-3 text-[13px] leading-relaxed text-gray-700">
+                      <span className="font-display text-[9px] font-semibold uppercase tracking-widest text-orange">
+                        Agent-attributed ·{" "}
+                      </span>
+                      &ldquo;{ref.quote}&rdquo;
+                    </blockquote>
                   )}
                 </li>
               ))}
-            </ol>
-          </details>
-        )}
-
-        {labs && (
-          <details className="mt-3 rounded-md border border-gray-100 bg-white">
-            <summary className="flex cursor-pointer items-center justify-between gap-2 px-4 py-3">
-              <div className="flex items-center gap-2">
-                <span className="font-display text-[11px] font-semibold uppercase tracking-widest text-navy-deep">
-                  Lab requirements
-                </span>
-                {labs.required ? (
-                  <span className="rounded-full bg-amber-soft px-2 py-0.5 font-display text-[10px] font-semibold uppercase tracking-wider text-amber-700">
-                    Required
-                  </span>
-                ) : (
-                  <span className="rounded-full bg-gray-100 px-2 py-0.5 font-display text-[10px] font-semibold uppercase tracking-wider text-gray-500">
-                    Theory-only
-                  </span>
-                )}
-              </div>
-              {labs.required && (
-                <span className="font-mono text-[11px] text-gray-500">
-                  {labs.platforms.length} platform
-                  {labs.platforms.length === 1 ? "" : "s"} ·{" "}
-                  {labs.tools.length} tool{labs.tools.length === 1 ? "" : "s"}
-                </span>
-              )}
-            </summary>
-            {labs.required && (
-              <div className="grid grid-cols-1 gap-3 border-t border-gray-100 px-4 py-3 text-sm md:grid-cols-2">
-                <div>
-                  <div className="font-display text-[10px] font-semibold uppercase tracking-widest text-gray-500">
-                    Platforms
-                  </div>
-                  {labs.platforms.length > 0 ? (
-                    <ul className="mt-1 list-disc pl-4 text-[13px] text-gray-700">
-                      {labs.platforms.map((p) => (
-                        <li key={p}>{p}</li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="mt-1 text-[12px] text-gray-400">None specified.</p>
-                  )}
-                </div>
-                <div>
-                  <div className="font-display text-[10px] font-semibold uppercase tracking-widest text-gray-500">
-                    Tools
-                  </div>
-                  {labs.tools.length > 0 ? (
-                    <ul className="mt-1 list-disc pl-4 text-[13px] text-gray-700">
-                      {labs.tools.map((t) => (
-                        <li key={t}>{t}</li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="mt-1 text-[12px] text-gray-400">None specified.</p>
-                  )}
-                </div>
-                {labs.notes && (
-                  <div className="md:col-span-2">
-                    <div className="font-display text-[10px] font-semibold uppercase tracking-widest text-gray-500">
-                      Delivery notes
-                    </div>
-                    <p className="mt-1 text-[13px] leading-relaxed text-gray-700">
-                      {labs.notes}
-                    </p>
-                  </div>
-                )}
-              </div>
-            )}
-          </details>
-        )}
-
-        <div className="mt-4">
-          <div className="mb-1.5 font-display text-[10px] font-semibold uppercase tracking-widest text-gray-500">
-            References · {suggestion.references.length}
+            </ul>
           </div>
-          <ul className="space-y-2">
-            {suggestion.references.map((ref) => (
-              <li
-                key={ref.url}
-                className="rounded-md border border-gray-100 bg-white p-3"
-              >
-                <a
-                  href={ref.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex max-w-full items-center gap-1.5 text-sm font-medium text-navy-deep transition-colors hover:text-orange"
-                >
-                  <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-orange" />
-                  <span className="truncate">{ref.name}</span>
-                  <span className="text-[10px] text-gray-400">↗</span>
-                </a>
-                <div className="mt-0.5 truncate font-mono text-[10px] text-gray-400">
-                  {ref.url}
-                </div>
-                {ref.quote && (
-                  <blockquote className="mt-2 border-l-2 border-orange-pale pl-3 text-[13px] leading-relaxed text-gray-700">
-                    <span className="font-display text-[9px] font-semibold uppercase tracking-widest text-orange">
-                      Agent-attributed ·{" "}
-                    </span>
-                    &ldquo;{ref.quote}&rdquo;
-                  </blockquote>
-                )}
-              </li>
+
+          <div className="mt-4 flex flex-wrap gap-1.5">
+            {PASSED_RULES.map((r) => (
+              <RuleBadge key={r} label={r} />
             ))}
-          </ul>
-        </div>
-
-        <div className="mt-4 flex flex-wrap gap-1.5">
-          {PASSED_RULES.map((r) => (
-            <RuleBadge key={r} label={r} />
-          ))}
-        </div>
-
-        {actions && <div className="mt-5 flex items-center gap-2">{actions}</div>}
-      </div>
-
-      <aside className="rounded-md border border-gray-100 bg-off-white p-4">
-        <div className="mb-2 font-display text-[10px] font-semibold uppercase tracking-widest text-orange">
-          Closest existing course
-        </div>
-        {closest ? (
-          <>
-            <a
-              href={closest.course.link ?? "#"}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block text-sm font-medium text-navy-deep hover:text-navy"
-            >
-              {closest.course.name}
-            </a>
-            <div className="mt-0.5 text-[11px] text-gray-500">
-              {closest.course.category}
-              {closest.course.subcategory && ` · ${closest.course.subcategory}`}
-            </div>
-            <div className="mt-3 flex items-center gap-2">
-              <SimilarityBar value={closest.similarity} />
-              <span className="font-mono text-xs font-semibold text-navy-deep">
-                {Math.round(closest.similarity * 100)}%
-              </span>
-            </div>
-            <p className="mt-2 text-[11px] leading-relaxed text-gray-500">
-              Cosine similarity vs <code className="rounded bg-gray-100 px-1 font-mono text-[10px]">courses.embedding</code>.
-              Anything &gt; 85% would have been blocked by Rule 2.
-            </p>
-          </>
-        ) : (
-          <div className="text-sm text-gray-500">
-            No close match in the catalogue.
           </div>
-        )}
-      </aside>
-    </article>
+
+          {actions && (
+            <div className="mt-5 flex items-center gap-2">{actions}</div>
+          )}
+        </div>
+
+        <aside className="rounded-md border border-gray-100 bg-off-white p-4">
+          <div className="mb-2 font-display text-[10px] font-semibold uppercase tracking-widest text-orange">
+            Closest existing course
+          </div>
+          {closest ? (
+            <>
+              <a
+                href={closest.course.link ?? "#"}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block text-sm font-medium text-navy-deep hover:text-navy"
+              >
+                {closest.course.name}
+              </a>
+              <div className="mt-0.5 text-[11px] text-gray-500">
+                {closest.course.category}
+                {closest.course.subcategory && ` · ${closest.course.subcategory}`}
+              </div>
+              <div className="mt-3 flex items-center gap-2">
+                <SimilarityBar value={closest.similarity} />
+                <span className="font-mono text-xs font-semibold text-navy-deep">
+                  {Math.round(closest.similarity * 100)}%
+                </span>
+              </div>
+              <p className="mt-2 text-[11px] leading-relaxed text-gray-500">
+                Cosine similarity vs <code className="rounded bg-gray-100 px-1 font-mono text-[10px]">courses.embedding</code>.
+                Anything &gt; 85% would have been blocked by Rule 2.
+              </p>
+            </>
+          ) : (
+            <div className="text-sm text-gray-500">
+              No close match in the catalogue.
+            </div>
+          )}
+
+          <div className="mt-4 border-t border-gray-100 pt-3">
+            <Link
+              href={`/suggestions/${suggestion.id}`}
+              className="font-display text-[10px] font-semibold uppercase tracking-widest text-orange hover:text-navy-deep"
+            >
+              Open full detail →
+            </Link>
+          </div>
+        </aside>
+      </div>
+    </details>
+  );
+}
+
+function MetaChip({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="rounded-full bg-gray-100 px-2 py-0.5 font-mono text-[11px] text-gray-700">
+      {children}
+    </span>
   );
 }
 
