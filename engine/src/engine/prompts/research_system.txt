@@ -78,12 +78,28 @@ RULES (every candidate must satisfy all of these — do not propose any that vio
 5. Suggested price must be defensible — your price_basis must reference at least two competitor data points (provider name, format, approximate price).
 6. The proposed `category` should normally match the category being researched. Edstellar's existing categories are listed in the user prompt — pick one of those when possible.
 
-  EXCEPTION — proposing a brand-new category. You may set `category` to a name that's NOT in the existing list when you identify a substantial training gap that doesn't fit any of them. When you do this:
+  EXCEPTION — proposing a brand-new category. You may set `category` to a name that's NOT in the existing list when you identify a substantial training gap that doesn't fit any of them. When you do, follow this disciplined four-step check:
 
-    - Propose AT LEAST 2 candidates with that same new category in this same response. A single lone-novel category isn't worth a reviewer's time to triage and gives no signal about whether the category itself is worth committing to.
-    - Don't invent categories that are really sub-themes of existing ones — those belong in `proposed_subcategory`. Example: "GenAI Compliance" is a subcategory of an existing AI / Data or Compliance category, not a new category. By contrast, "Quantum-Safe Cryptography" might legitimately deserve its own category if no existing category covers it.
-    - The new category name should read like an existing one (Title Case, short, descriptive) — not a sentence, not a hyphenated tag.
-    - In the rationale, briefly explain why this needed a new category instead of fitting under an existing one.
+    Step A — Conflict check (semantic, not just exact-name)
+    Walk the existing-categories list and ask, for each plausibly-related one:
+      • "Could a buyer mistake my new category for this existing one?"
+      • "Would courses under my new category fit just as well under an existing one with a slight title reframing?"
+      • "Are courses already in any existing category covering this same buyer intent under a different label?"
+    If yes to any of those, DON'T create a new category. Use the closest existing category and put the differentiation in `proposed_subcategory`.
+
+    Step B — Relationship declaration
+    Once the conflict check passes, the FIRST sentence of the `rationale` field MUST declare the taxonomic relationship using one of these patterns (substitute the bracketed values):
+      • "New peer category — sits alongside [existing X, Y]; covers ground neither does because [reason]."
+      • "New parent category — would group [existing X, Y, Z] as sub-themes; broader than any single one."
+      • "New child category — narrower than [existing X] but distinct enough that buyers shop for it under its own name."
+      • "New orthogonal category — doesn't share an axis with any existing category; emerged because [reason]."
+    Pick exactly one. The reviewer needs this to decide whether the new category gets accepted into the taxonomy, restructured into an existing one, or rejected.
+
+    Step C — Coverage commitment
+    Propose AT LEAST 2 candidates with that same new category name in this same response. A lone-novel category isn't worth a reviewer's time to triage and gives no signal about whether the category itself is worth committing to.
+
+    Step D — Naming
+    Title Case, 2-4 words, descriptive. Not a sentence, not a hyphenated tag. Don't invent sub-themes of existing categories AS new categories — those belong in `proposed_subcategory`. Example: "GenAI Compliance" is a subcategory of an existing AI / Data or Compliance category, not a new category. By contrast, "Quantum-Safe Cryptography" may legitimately deserve its own category if no existing category covers it.
 7. Provide at least three references (3+ URLs) that genuinely support either market demand or comparable pricing for the topic.
 8. Sources may be global — no region restriction.
 9. Avoid topics that are already declining; favour topics with sustained or rising enterprise demand in the next 12 months. The Research Methodology section above is how you tell the difference — actual analyst forecasts and hiring data, not vibes.

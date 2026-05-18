@@ -236,25 +236,79 @@ existing categories. The categories list is included in the user
 prompt at run time, so the agent knows which names are already
 taken.
 
-When the agent proposes a new category, it must commit:
+The Phase 9 prompt tightens this with a **four-step discipline**
+the agent must walk through every time it proposes a new category.
 
-- ≥2 candidates in the same new category within the same
-  response. A lone-novel category isn't worth a reviewer's
-  triage time and provides no signal about whether the category
-  is worth committing to.
-- The new category name should look like an existing one — Title
-  Case, short, descriptive (e.g. "Quantum-Safe Cryptography"),
-  not a sentence or hyphenated tag.
-- The candidate is NOT a sub-theme of an existing category. Those
-  go in `proposed_subcategory` under the parent.
-- The rationale briefly says why this needed a new category.
+### Step A — Conflict check (semantic, not just exact-name)
+
+Before locking in a new-category name, the agent walks the
+existing-categories list and asks:
+
+- Could a buyer mistake my new category for this existing one?
+- Would courses under my new category fit just as well under an
+  existing one with a slight title reframing?
+- Are courses already in any existing category covering this same
+  buyer intent under a different label?
+
+If yes to any of those, the agent backs off and uses the closest
+existing category, putting the distinction in `proposed_subcategory`.
+
+### Step B — Relationship declaration
+
+Once the conflict check passes, the **first sentence of the
+candidate's `rationale`** must declare the taxonomic relationship
+in one of four patterns:
+
+| Relationship | Pattern |
+|---|---|
+| **Peer** | *"New peer category — sits alongside [existing X, Y]; covers ground neither does because [reason]."* |
+| **Parent** | *"New parent category — would group [existing X, Y, Z] as sub-themes; broader than any single one."* |
+| **Child** | *"New child category — narrower than [existing X] but distinct enough that buyers shop for it under its own name."* |
+| **Orthogonal** | *"New orthogonal category — doesn't share an axis with any existing category; emerged because [reason]."* |
+
+Exactly one pattern per new-category candidate. The reviewer uses
+this to decide whether the new category gets:
+
+- Accepted as-is into the taxonomy
+- Restructured (e.g. promote the new "parent" candidate by also
+  reclassifying the existing children under it)
+- Rejected and folded back into an existing category
+
+### Step C — Coverage commitment
+
+The agent must propose at least **2 candidates** in the same new
+category in the same response. A lone-novel category gives no
+signal about whether the category is worth committing to.
+
+### Step D — Naming
+
+- Title Case
+- 2-4 words
+- Descriptive, not a sentence or hyphenated tag
+
+Example of when a new category is appropriate vs not:
+
+| Proposal | Verdict |
+|---|---|
+| "GenAI Compliance" when "AI / Data" and "Compliance" exist | ❌ subcategory; belongs in `proposed_subcategory` |
+| "Quantum-Safe Cryptography" when nothing covers it | ✅ new orthogonal category |
+| "Cloud-Native Application Security" | ❌ subcategory of "Cybersecurity" or "Cloud Computing" |
+| "Sustainable Manufacturing Operations" | ✅ if no existing manufacturing/sustainability overlap |
+
+### Persistence
 
 When the persist node sees a candidate with a category that
 doesn't exist in `course-agent.categories`, it **auto-creates the
-row** (via the service-role client) so future gap_analyze runs
+row** (via the service-role client) so future `gap_analyze` runs
 recognize it. The auto-created row has `notes = "Auto-created by
 agent — proposed during research as a new category."` so an admin
 reviewing `/categories` can see how it got there.
+
+The relationship declaration sentence stays in
+`suggestions.rationale` — the reviewer reads it on
+`/suggestions/today` when deciding to approve / reject /
+needs_revision. There is no separate `category_relationship`
+column today; the rationale text is the audit trail.
 
 ## Picking which categories to research
 
