@@ -26,6 +26,18 @@ jobs:
       - name: Install engine dependencies
         run: uv --directory engine sync
 
+      # GitHub Actions' Ubuntu resolver doesn't resolve sslip.io
+      # subdomains (sslip.io rate-limits Azure IP ranges, which is
+      # where these runners live). Pin the IP locally so the agent
+      # can reach the self-hosted Supabase host. TLS still validates
+      # because the SNI hostname is unchanged. Long-term: replace
+      # the sslip.io URL with a real DNS A record (e.g.
+      # supabase.edstellar.com -> 187.127.140.202) and drop this step.
+      - name: Pin Supabase hostname → IP
+        run: |
+          echo "187.127.140.202 supabasekong-dfpiopwrqgdf8iods10d4546.187.127.140.202.sslip.io" | sudo tee -a /etc/hosts
+          getent hosts supabasekong-dfpiopwrqgdf8iods10d4546.187.127.140.202.sslip.io
+
       - name: Run agent
         env:
           # Required — Supabase + LLM gateway + embeddings + search
