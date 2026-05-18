@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import contextlib
 import logging
+import sys
 from collections.abc import Iterator
 from typing import Any
 
@@ -58,38 +59,66 @@ def _get_client() -> Any:
 
 
 @contextlib.contextmanager
-def maybe_langfuse_trace(name: str, **attrs: Any) -> Iterator[Any]:
+def _safe_observation(name: str, **attrs: Any) -> Iterator[Any]:
+    """Internal helper. Wrap a Langfuse observation so SDK-side
+    failures (init, network, schema) never abort the agent run, while
+    user exceptions inside the ``with`` block still propagate and are
+    recorded against the span via ``__exit__(*exc_info)``.
+
+    Always yields exactly once per code path — the contract a
+    ``@contextlib.contextmanager`` generator must honour. Yielding
+    twice (e.g. once in the happy path and again from an ``except``
+    branch) raises ``generator didn't stop after throw()`` and masks
+    the original exception.
+    """
+    client = _get_client()
+    if client is None:
+        yield None
+        return
+
+    try:
+        cm = client.start_as_current_observation(
+            name=name, as_type="span", metadata=attrs
+        )
+    except Exception as exc:  # noqa: BLE001 — telemetry never blocks
+        log.warning("langfuse %s create failed: %s — continuing", name, exc)
+        yield None
+        return
+
+    entered = False
+    obs: Any = None
+    try:
+        obs = cm.__enter__()
+        entered = True
+    except Exception as exc:  # noqa: BLE001
+        log.warning("langfuse %s enter failed: %s — continuing", name, exc)
+
+    if not entered:
+        yield None
+        return
+
+    exc_info: Any = (None, None, None)
+    try:
+        yield obs
+    except BaseException:
+        exc_info = sys.exc_info()
+        raise
+    finally:
+        try:
+            cm.__exit__(*exc_info)
+        except Exception as exc:  # noqa: BLE001
+            log.warning("langfuse %s exit failed: %s — continuing", name, exc)
+
+
+def maybe_langfuse_trace(name: str, **attrs: Any) -> contextlib.AbstractContextManager[Any]:
     """Top-level trace. Wrap the agent invocation in this; every
     nested ``maybe_langfuse_span`` lands underneath."""
-    client = _get_client()
-    if client is None:
-        yield None
-        return
-    try:
-        with client.start_as_current_observation(
-            name=name, as_type="span", metadata=attrs
-        ) as obs:
-            yield obs
-    except Exception as exc:  # noqa: BLE001
-        log.warning("langfuse trace %s failed: %s — continuing", name, exc)
-        yield None
+    return _safe_observation(name, **attrs)
 
 
-@contextlib.contextmanager
-def maybe_langfuse_span(name: str, **attrs: Any) -> Iterator[Any]:
+def maybe_langfuse_span(name: str, **attrs: Any) -> contextlib.AbstractContextManager[Any]:
     """Nested observation. Use inside a graph node or sub-step."""
-    client = _get_client()
-    if client is None:
-        yield None
-        return
-    try:
-        with client.start_as_current_observation(
-            name=name, as_type="span", metadata=attrs
-        ) as obs:
-            yield obs
-    except Exception as exc:  # noqa: BLE001
-        log.warning("langfuse span %s failed: %s — continuing", name, exc)
-        yield None
+    return _safe_observation(name, **attrs)
 
 
 def flush_langfuse() -> None:
