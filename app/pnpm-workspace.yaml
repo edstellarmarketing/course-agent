@@ -1,10 +1,25 @@
-allowBuilds:
-  '@sentry/cli': set this to true or false
-  esbuild: set this to true or false
-  msw: set this to true or false
-  sharp: set this to true or false
-  unrs-resolver: set this to true or false
+# pnpm install-script approvals.
+#
+# pnpm 9+ refuses to run package install scripts unless they're in
+# `onlyBuiltDependencies` (an allowlist) or `allowBuilds` (pnpm 11+,
+# explicit true/false). On Vercel and any fresh CI, the warning we
+# saw was pnpm skipping these scripts. For @sentry/cli that matters:
+# its postinstall downloads the binary that withSentryConfig invokes
+# during `next build` to upload source maps. Without the approval,
+# the build fails at the source-map step.
+#
+# We use the broader-compatibility `onlyBuiltDependencies` syntax —
+# it works in both pnpm 9/10 (used by Vercel) and pnpm 11 (local).
+# `ignoredBuiltDependencies` still wins for the explicit-skip list.
+onlyBuiltDependencies:
+  - '@sentry/cli'
+  - esbuild
+  - msw
 ignoredBuiltDependencies:
   - sharp
   - unrs-resolver
+# Skip pnpm 11's pre-run dep-status check; `pnpm dev` was refusing
+# to start otherwise (see ERR_PNPM_IGNORED_BUILDS history). Vercel's
+# `pnpm install` ignores this key, so the production install is
+# unaffected.
 verifyDepsBeforeRun: false
