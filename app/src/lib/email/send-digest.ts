@@ -52,8 +52,18 @@ interface PreviewSuggestionRow {
   run_id: string | null;
 }
 
+/**
+ * @param runId   agent_runs row to summarise in the email
+ * @param opts.recipientsOverride
+ *                if provided, send only to these addresses, bypassing
+ *                the digest_recipients table. Used by the
+ *                "Send test digest" button on /email-settings so an
+ *                admin can verify the wiring without spamming the real
+ *                list. Also handy for staging tests.
+ */
 export async function sendDigestForRun(
   runId: string,
+  opts: { recipientsOverride?: string[] } = {},
 ): Promise<SendDigestResult> {
   const e = env();
   if (!e.GAS_EMAIL_WEBHOOK_URL || !e.GAS_EMAIL_SHARED_SECRET) {
@@ -159,7 +169,10 @@ export async function sendDigestForRun(
 
   const html = renderDigestHtml(props);
   const subject = renderDigestSubject(props);
-  const recipients = await digestRecipients();
+  const recipients =
+    opts.recipientsOverride && opts.recipientsOverride.length > 0
+      ? opts.recipientsOverride
+      : await digestRecipients();
   if (recipients.length === 0) {
     return { ok: false, error: "no digest recipients configured" };
   }

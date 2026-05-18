@@ -2,7 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 
+import { getCurrentReviewer } from "@/lib/auth/current-user";
 import { logAdminAction } from "@/lib/audit";
+import { sendDigestForRun } from "@/lib/email/send-digest";
+import { createAdminClient } from "@/lib/supabase/server";
 import { createSessionClient } from "@/lib/supabase/server-with-session";
 
 /**
@@ -121,6 +124,57 @@ export async function updateRecipient(
 
   revalidatePath("/email-settings");
   return { ok: true };
+}
+
+/**
+ * Send the digest for the most recent agent_run, but only to the
+ * signed-in admin's own email. Real recipient list is bypassed —
+ * this is for verifying the GAS relay + email rendering without
+ * spamming reviewers.
+ *
+ * Why service-role for the agent_runs lookup: the latest-run query
+ * needs to see every row regardless of which reviewer is signed in;
+ * RLS could otherwise hide rows the admin doesn't directly own.
+ */
+export async function sendTestDigest(): Promise<
+  | { ok: true; runId: string; sentTo: string }
+  | { ok: false; error: string }
+> {
+  const profile = await getCurrentReviewer();
+  if (!profile?.email) {
+    return { ok: false, error: "No signed-in reviewer email — cannot test." };
+  }
+
+  const admin = createAdminClient();
+  const { data: runs, error: runErr } = await admin
+    .from("agent_runs")
+    .select("id")
+    .not("finished_at", "is", null)
+    .order("started_at", { ascending: false })
+    .limit(1);
+
+  if (runErr) return { ok: false, error: runErr.message };
+  if (!runs || runs.length === 0) {
+    return {
+      ok: false,
+      error:
+        "No completed agent runs yet — trigger one first, then come back to test.",
+    };
+  }
+  const runId = runs[0].id;
+
+  const result = await sendDigestForRun(runId, {
+    recipientsOverride: [profile.email],
+  });
+  if (!result.ok) return { ok: false, error: result.error };
+
+  await logAdminAction({
+    action: "digest_recipient.test_send",
+    targetType: "digest_recipients",
+    payload: { run_id: runId, sent_to: profile.email },
+  });
+
+  return { ok: true, runId, sentTo: profile.email };
 }
 
 export async function deleteRecipient(

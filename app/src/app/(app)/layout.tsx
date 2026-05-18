@@ -16,9 +16,17 @@ export default async function AppShellLayout({
   if (!profile) redirect("/login");
 
   return (
-    <div className="flex min-h-screen flex-1 bg-off-white">
+    // h-screen + overflow-hidden on the wrapper turns the window
+    // into a fixed-height viewport. The aside (h-screen w-64)
+    // stays put because the wrapper never scrolls; only <main>
+    // scrolls (its own overflow-y-auto). Without this, both the
+    // sidebar and main share the document-level scroll, and the
+    // sidebar drifts upward as the user scrolls a long page.
+    <div className="flex h-screen flex-1 overflow-hidden bg-off-white">
       <AppNav profile={profile} />
-      <main className="flex min-w-0 flex-1 flex-col">{children}</main>
+      <main className="flex min-w-0 flex-1 flex-col overflow-y-auto">
+        {children}
+      </main>
     </div>
   );
 }

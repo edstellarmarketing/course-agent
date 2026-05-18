@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 import {
   addRecipient,
   deleteRecipient,
+  sendTestDigest,
   updateRecipient,
 } from "@/app/(app)/email-settings/actions";
 import { cn } from "@/lib/utils";
@@ -40,6 +41,7 @@ export function EmailRecipientsManager({
 
   return (
     <section className="space-y-4">
+      {canEdit && <TestSendPanel />}
       {canEdit && <AddRecipientForm categoryNames={categoryNames} onError={setError} />}
 
       <div className="rounded-lg border border-gray-100 bg-white">
@@ -126,6 +128,76 @@ export function EmailRecipientsManager({
           </div>
         )}
       </div>
+    </section>
+  );
+}
+
+// ─── Test send ──────────────────────────────────────────────────
+
+function TestSendPanel() {
+  const [pending, startTransition] = useTransition();
+  const [result, setResult] = useState<
+    | { ok: true; runId: string; sentTo: string }
+    | { ok: false; error: string }
+    | null
+  >(null);
+
+  const handleClick = () => {
+    setResult(null);
+    startTransition(async () => {
+      const r = await sendTestDigest();
+      setResult(r);
+    });
+  };
+
+  return (
+    <section className="rounded-lg border border-gray-100 bg-white p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="min-w-0">
+          <div className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-orange">
+            Verify
+          </div>
+          <h2 className="font-display text-sm font-semibold text-navy-deep">
+            Send a test digest to your own email
+          </h2>
+          <p className="mt-0.5 text-xs text-gray-600">
+            Picks the most recent completed agent run, builds the digest HTML,
+            and sends it only to your signed-in email — bypassing the recipient
+            list. No reviewers get spammed. Useful for verifying the GAS relay
+            and previewing the template before adding a new recipient.
+          </p>
+        </div>
+        <button
+          type="button"
+          disabled={pending}
+          onClick={handleClick}
+          className="rounded-md bg-orange px-3.5 py-2 text-sm font-medium text-white transition-colors hover:bg-orange-light disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {pending ? "Sending…" : "Send test to me"}
+        </button>
+      </div>
+
+      {result && result.ok && (
+        <div
+          role="status"
+          className="mt-3 rounded-md border border-green-200 bg-green-soft px-3 py-2 text-sm text-green-700"
+        >
+          ✓ Sent to <strong>{result.sentTo}</strong>. Built from run{" "}
+          <code className="rounded bg-green-100 px-1 font-mono text-[11px]">
+            {result.runId.slice(0, 8)}
+          </code>
+          . Check your inbox in ~30 seconds; if it doesn't arrive, check Spam
+          and then the GAS Apps Script Executions panel.
+        </div>
+      )}
+      {result && !result.ok && (
+        <div
+          role="alert"
+          className="mt-3 rounded-md border border-red-200 bg-red-soft px-3 py-2 text-sm text-red-700"
+        >
+          ✗ {result.error}
+        </div>
+      )}
     </section>
   );
 }
