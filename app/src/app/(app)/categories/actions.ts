@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { logAdminAction } from "@/lib/audit";
 import { createSessionClient } from "@/lib/supabase/server-with-session";
 
 /**
@@ -39,6 +40,7 @@ export async function upsertCategory(
     notes: input.notes?.trim() ? input.notes.trim() : null,
   };
 
+  let writtenId: string;
   if (id) {
     // Ask for the affected rows back so a silent 0-row response (RLS
     // denied the write but PostgREST didn't error) can be detected and
@@ -57,6 +59,7 @@ export async function upsertCategory(
           "No rows updated — your account may not have admin write access on this category.",
       };
     }
+    writtenId = id;
   } else {
     const { data, error } = await supabase
       .from("categories")
@@ -69,7 +72,15 @@ export async function upsertCategory(
         error: "No row inserted — admin write access required.",
       };
     }
+    writtenId = data[0].id;
   }
+
+  await logAdminAction({
+    action: "category.upsert",
+    targetType: "categories",
+    targetId: writtenId,
+    payload,
+  });
 
   // Both pages aggregate over categories, so invalidate both.
   revalidatePath("/categories");

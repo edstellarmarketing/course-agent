@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { logAdminAction } from "@/lib/audit";
 import { createSessionClient } from "@/lib/supabase/server-with-session";
 
 /**
@@ -50,6 +51,12 @@ export async function promotePromptVersion(
     };
   }
 
+  await logAdminAction({
+    action: "prompt.promote",
+    targetType: "prompt_versions",
+    targetId: candidateId,
+  });
+
   revalidatePath("/learning");
   return { ok: true };
 }
@@ -71,6 +78,13 @@ export async function retirePromptVersion(
       error: "Couldn't retire — admin write access required.",
     };
   }
+
+  await logAdminAction({
+    action: "prompt.retire",
+    targetType: "prompt_versions",
+    targetId: rowId,
+  });
+
   revalidatePath("/learning");
   return { ok: true };
 }
