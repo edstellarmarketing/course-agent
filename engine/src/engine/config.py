@@ -102,18 +102,21 @@ class EngineSettings(BaseSettings):
         description="Slack incoming-webhook URL for run-complete pings.",
     )
 
-    # Treat empty / whitespace-only env values as None for the
-    # optional URL fields. Without this, a stray `SLACK_WEBHOOK_URL=`
-    # in .env trips pydantic's URL validator before the engine can
-    # tell us it's an optional setting.
+    # Treat empty / whitespace-only env values as None for optional
+    # fields. Without this, a stray `SLACK_WEBHOOK_URL=` in .env trips
+    # pydantic's URL validator, and a passed-through empty
+    # `INTERNAL_WEBHOOK_SECRET=` (the shape GitHub Actions produces
+    # when a secret isn't defined in the environment) trips the
+    # min_length check before the engine can tell us it's optional.
     @field_validator(
         "internal_webhook_url",
+        "internal_webhook_secret",
         "slack_webhook_url",
         "langfuse_host",
         mode="before",
     )
     @classmethod
-    def _blank_url_to_none(cls, v: object) -> object:
+    def _blank_to_none(cls, v: object) -> object:
         if isinstance(v, str) and v.strip() == "":
             return None
         return v
