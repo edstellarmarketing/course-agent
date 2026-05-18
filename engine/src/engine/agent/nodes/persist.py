@@ -196,6 +196,15 @@ def _insert_suggestions(
             "references": c.get("references", []),
             "embedding": emb_str,
             "status": "pending_review",
+            # Phase 9 reviewer-feedback round — six new columns.
+            # All nullable on the DB side; we pass through what the
+            # LLM produced and the UI hides empty sections.
+            "duration_hours_min": c.get("duration_hours_min"),
+            "duration_hours_max": c.get("duration_hours_max"),
+            "content_outline": c.get("content_outline"),
+            "package_fit": c.get("package_fit"),
+            "lab_requirements": c.get("lab_requirements"),
+            "edstellar_pitch": c.get("edstellar_pitch"),
         }
         # Phase 8 Step 5 — needs_revision_retry stamps parent_id on the
         # revised candidate so the new row links back to the original.
