@@ -1,0 +1,51 @@
+name: auto-promote
+
+# Phase 9 Step 8 — nightly auto-promote check.
+# Runs at 04:00 UTC, an hour after agent-daily, so the freshest
+# run has already updated agent_runs.approval_rate where reviewer
+# feedback has come in.
+#
+# DEFAULT BEHAVIOUR: dry-run only.
+# To activate actual promotion, set PROMPT_AUTO_PROMOTE_ENABLED=true
+# in the agent-production environment. Doc-recommended floor before
+# flipping: one month of dry-run logs matching manual /learning math.
+on:
+  schedule:
+    - cron: "0 4 * * *"
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    environment: agent-production
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+
+      - name: Install engine dependencies
+        run: uv --directory engine sync
+
+      - name: Pin Supabase hostname → IP
+        run: |
+          echo "187.127.140.202 supabasekong-dfpiopwrqgdf8iods10d4546.187.127.140.202.sslip.io" | sudo tee -a /etc/hosts
+
+      - name: Run auto-promote
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN_ENGINE }}
+          # Stub values to satisfy pydantic at boot — auto_promote
+          # doesn't make LLM/embedding/search calls.
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          VOYAGE_API_KEY: ${{ secrets.VOYAGE_API_KEY }}
+          SERPER_API_KEY: ${{ secrets.SERPER_API_KEY }}
+          # Defaults: false / 20 / 0.05. Override here ONLY for
+          # staging. Production stays dry-run until the team
+          # explicitly opts in.
+          PROMPT_AUTO_PROMOTE_ENABLED: ${{ vars.PROMPT_AUTO_PROMOTE_ENABLED }}
+          MIN_PROMOTE_DECISIONS: ${{ vars.MIN_PROMOTE_DECISIONS }}
+          MIN_PROMOTE_DELTA: ${{ vars.MIN_PROMOTE_DELTA }}
+        run: uv --directory engine run auto_promote

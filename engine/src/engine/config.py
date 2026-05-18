@@ -125,6 +125,39 @@ class EngineSettings(BaseSettings):
         description="Hard daily spend cap across all runs, in USD.",
     )
 
+    # ── Phase 9 Step 8 — auto-promote prompt versions ────────────
+    # Default OFF. The script ships behind a flag so the team has a
+    # month of dry-run observability before any candidate prompt is
+    # promoted without a human in the loop. Flip on a staging DB
+    # first; only after the dry-run log has matched the team's
+    # manual /learning math for ~4 weeks should this go live in prod.
+    prompt_auto_promote_enabled: bool = Field(
+        default=False,
+        alias="PROMPT_AUTO_PROMOTE_ENABLED",
+        description="If true, auto_promote.py will actually promote.",
+    )
+    # Minimum number of reviewer decisions (approve/reject/needs_revision)
+    # on suggestions that came from the candidate prompt's runs.
+    # 20 is the doc-recommended floor — under that the win-rate
+    # comparison is noise. Decisions, not runs: one run with 5
+    # suggestions all reviewed = 5 decisions toward the count.
+    min_promote_decisions: int = Field(
+        default=20,
+        alias="MIN_PROMOTE_DECISIONS",
+        ge=1,
+        description="Decisions threshold before a candidate can be auto-promoted.",
+    )
+    # Minimum absolute win-rate advantage candidate must show over
+    # active before promotion. 0.05 = 5 percentage points (e.g.
+    # candidate 70% vs active 65% qualifies; 67% vs 65% doesn't).
+    min_promote_delta: float = Field(
+        default=0.05,
+        alias="MIN_PROMOTE_DELTA",
+        ge=0.0,
+        le=1.0,
+        description="Required candidate-over-active win-rate delta (0.0–1.0).",
+    )
+
     # Treat empty / whitespace-only env values as None for optional
     # fields. Without this, a stray `SLACK_WEBHOOK_URL=` in .env trips
     # pydantic's URL validator, and a passed-through empty

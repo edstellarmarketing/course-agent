@@ -35,7 +35,10 @@ DROP_THRESHOLD_PP = 10.0
 def _approval_rate(rows: list[dict[str, str]]) -> tuple[float, int]:
     if not rows:
         return 0.0, 0
-    counts = {"approve": 0, "reject": 0, "needs_revision": 0}
+    # Decision values are `approved` / `rejected` / `needs_revision`
+    # per the CHECK constraint in supabase/migrations/0001_initial.sql
+    # and the FeedbackDecision union in app/src/lib/types.ts.
+    counts = {"approved": 0, "rejected": 0, "needs_revision": 0}
     for r in rows:
         d = r.get("decision")
         if d in counts:
@@ -43,7 +46,7 @@ def _approval_rate(rows: list[dict[str, str]]) -> tuple[float, int]:
     total = sum(counts.values())
     if total == 0:
         return 0.0, 0
-    return counts["approve"] / total, total
+    return counts["approved"] / total, total
 
 
 def _decisions_between(start: datetime, end: datetime) -> list[dict[str, str]]:

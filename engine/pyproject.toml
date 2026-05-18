@@ -34,6 +34,8 @@ regenerate_prompt = "engine.scripts.regenerate_prompt:main"
 check_daily_run = "engine.scripts.check_daily_run:main"
 check_approval_rate = "engine.scripts.check_approval_rate:main"
 check_spend = "engine.scripts.check_spend:main"
+# Phase 9 Step 8 — auto-promote prompt versions (flag-gated)
+auto_promote = "engine.scripts.auto_promote:main"
 
 [build-system]
 requires = ["uv_build>=0.9.21,<0.10.0"]
