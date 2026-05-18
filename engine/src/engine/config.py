@@ -102,6 +102,29 @@ class EngineSettings(BaseSettings):
         description="Slack incoming-webhook URL for run-complete pings.",
     )
 
+    # ── Phase 9 Step 6 — monitoring alerts ──────────────────────
+    # If set, overrides slack_webhook_url for the three alert
+    # scripts (daily-run-missing, approval-rate-drop, spend-ceiling).
+    # Lets the team route alerts to #alerts while run-complete pings
+    # continue to land in #course-agent (or wherever the Phase 7 hook
+    # points). When unset, alerts fall back to slack_webhook_url.
+    alerts_slack_webhook_url: HttpUrl | None = Field(
+        default=None,
+        alias="ALERTS_SLACK_WEBHOOK_URL",
+        description="Override Slack channel for monitoring alerts.",
+    )
+    # Per-day rolling cost ceiling. Different signal from
+    # engine_run_cost_ceiling_usd (which is per-run): the per-run
+    # cap protects one runaway run; this one catches a cron loop
+    # that fires N runs in a day. The 24-hour spend check script
+    # pings Slack when today's sum(agent_runs.cost_usd) crosses
+    # this threshold.
+    openrouter_daily_ceiling_usd: float = Field(
+        default=10.0,
+        alias="OPENROUTER_DAILY_CEILING_USD",
+        description="Hard daily spend cap across all runs, in USD.",
+    )
+
     # Treat empty / whitespace-only env values as None for optional
     # fields. Without this, a stray `SLACK_WEBHOOK_URL=` in .env trips
     # pydantic's URL validator, and a passed-through empty
@@ -112,6 +135,7 @@ class EngineSettings(BaseSettings):
         "internal_webhook_url",
         "internal_webhook_secret",
         "slack_webhook_url",
+        "alerts_slack_webhook_url",
         "langfuse_host",
         mode="before",
     )

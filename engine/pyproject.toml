@@ -30,6 +30,10 @@ embed_courses = "engine.scripts.embed_courses:main"
 agent = "engine.cli:main"
 backfill_suggestions = "engine.scripts.backfill_suggestion_embeddings:main"
 regenerate_prompt = "engine.scripts.regenerate_prompt:main"
+# Phase 9 Step 6 monitoring alerts
+check_daily_run = "engine.scripts.check_daily_run:main"
+check_approval_rate = "engine.scripts.check_approval_rate:main"
+check_spend = "engine.scripts.check_spend:main"
 
 [build-system]
 requires = ["uv_build>=0.9.21,<0.10.0"]

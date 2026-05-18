@@ -1,0 +1,42 @@
+name: alert-daily-missing
+
+# Phase 9 Step 6 — alert #1.
+# Runs three hours after the agent-daily fire window (03:00 UTC),
+# leaving room for the GitHub Actions Cron drift (~15 min) plus a
+# long run (~30 min). Mon-Sat only — Sunday is digest-free by design.
+on:
+  schedule:
+    - cron: "15 6 * * 1-6"
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    environment: agent-production
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+
+      - name: Install engine dependencies
+        run: uv --directory engine sync
+
+      - name: Pin Supabase hostname → IP
+        run: |
+          echo "187.127.140.202 supabasekong-dfpiopwrqgdf8iods10d4546.187.127.140.202.sslip.io" | sudo tee -a /etc/hosts
+
+      - name: Run check
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          ALERTS_SLACK_WEBHOOK_URL: ${{ secrets.ALERTS_SLACK_WEBHOOK_URL }}
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN_ENGINE }}
+          # Stub values to satisfy pydantic at boot — the check
+          # scripts don't make LLM/embedding/search calls.
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          VOYAGE_API_KEY: ${{ secrets.VOYAGE_API_KEY }}
+          SERPER_API_KEY: ${{ secrets.SERPER_API_KEY }}
+        run: uv --directory engine run check_daily_run
