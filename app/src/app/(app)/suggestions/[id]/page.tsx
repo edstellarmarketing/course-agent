@@ -39,6 +39,13 @@ interface SuggestionRow {
   references: SuggestionReference[];
   status: SuggestionStatus;
   created_at: string;
+  // Phase 9 reviewer-feedback round (migration 0014).
+  duration_hours_min: number | null;
+  duration_hours_max: number | null;
+  content_outline: import("@/lib/types").ContentOutlineModule[] | null;
+  package_fit: import("@/lib/types").PackageFit | null;
+  lab_requirements: import("@/lib/types").LabRequirements | null;
+  edstellar_pitch: string | null;
 }
 
 interface FeedbackRow {
@@ -67,10 +74,16 @@ function rowToSuggestion(row: SuggestionRow): Suggestion {
     category: row.category,
     proposedSubcategory: row.proposed_subcategory,
     targetAudience: row.target_audience ?? "",
-    durationDays: row.duration_days ?? 0,
+    durationDays: row.duration_days,
+    durationHoursMin: row.duration_hours_min,
+    durationHoursMax: row.duration_hours_max,
     deliveryFormat: "instructor-led",
     suggestedPriceUsd: Number(row.suggested_price_usd),
     priceBasis: row.price_basis ?? "",
+    contentOutline: row.content_outline,
+    packageFit: row.package_fit,
+    labRequirements: row.lab_requirements,
+    edstellarPitch: row.edstellar_pitch ?? "",
     references: row.references ?? [],
     status: row.status,
     createdAt: row.created_at,
@@ -94,7 +107,7 @@ export default async function SuggestionDetailPage({
       supabase
         .from("suggestions")
         .select(
-          "id,run_id,title,rationale,category,proposed_subcategory,target_audience,duration_days,delivery_format,suggested_price_usd,price_basis,references,status,created_at",
+          "id,run_id,title,rationale,category,proposed_subcategory,target_audience,duration_days,duration_hours_min,duration_hours_max,delivery_format,suggested_price_usd,price_basis,references,status,created_at,content_outline,package_fit,lab_requirements,edstellar_pitch",
         )
         .eq("id", id)
         .maybeSingle(),

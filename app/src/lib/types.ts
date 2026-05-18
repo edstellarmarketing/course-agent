@@ -84,6 +84,30 @@ export interface SuggestionReference {
   accessedAt?: IsoTimestamp;
 }
 
+/** One module entry in a suggestion's content_outline. */
+export interface ContentOutlineModule {
+  module: string;
+  topics: string[];
+}
+
+/** Edstellar package the agent recommends for a candidate course. */
+export type EdstellarPackage = "Starter" | "Growth" | "Enterprise" | "Custom";
+
+export interface PackageFit {
+  licensesPerBatchOf10: number;
+  licenseMath: string;
+  primaryPackage: EdstellarPackage;
+  packageRationale: string;
+}
+
+/** What tech / accounts / tools the provider must stand up to deliver labs. */
+export interface LabRequirements {
+  required: boolean;
+  platforms: string[];
+  tools: string[];
+  notes: string;
+}
+
 /** `suggestions` — written by the agent, reviewed by humans. */
 export interface Suggestion {
   id: Uuid;
@@ -93,12 +117,24 @@ export interface Suggestion {
   category: string;
   proposedSubcategory: string | null;
   targetAudience: string;
-  durationDays: number;
+  /** Legacy day count. Null on rows produced by prompt v7+ (which uses hours range). */
+  durationDays: number | null;
+  /** Phase 9 reviewer-feedback: lower/upper bound of an hours range (e.g. 16-24 Hrs). */
+  durationHoursMin?: number | null;
+  durationHoursMax?: number | null;
   /** Always "instructor-led" — enforced by a CHECK constraint at the DB. */
   deliveryFormat: "instructor-led";
   /** USD, > 2500 enforced by CHECK. */
   suggestedPriceUsd: number;
   priceBasis: string;
+  /** Phase 9 reviewer-feedback: structured curriculum. Null/undefined on legacy rows. */
+  contentOutline?: ContentOutlineModule[] | null;
+  /** Phase 9 reviewer-feedback: Edstellar package recommendation. Null/undefined on legacy rows. */
+  packageFit?: PackageFit | null;
+  /** Phase 9 reviewer-feedback: lab requirements. Null/undefined on legacy rows. */
+  labRequirements?: LabRequirements | null;
+  /** Phase 9 reviewer-feedback: Edstellar-POV business case. Empty on legacy rows. */
+  edstellarPitch?: string;
   references: SuggestionReference[];
   status: SuggestionStatus;
   createdAt: IsoTimestamp;
