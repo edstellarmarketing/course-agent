@@ -40,7 +40,8 @@ Phase 6 Step 1 only reads `dry_run`, `forced_category`, `top_k`, and
 
 from __future__ import annotations
 
-from typing import Any, TypedDict
+import operator
+from typing import Annotated, Any, TypedDict
 
 
 class AgentState(TypedDict, total=False):
@@ -67,7 +68,13 @@ class AgentState(TypedDict, total=False):
     retry_candidates: list[dict[str, Any]]
 
     # ── Populated by research (per-category, merged) ────────────
-    raw_candidates: list[dict[str, Any]]
+    # Phase 9 Step 4: parallel research via LangGraph `Send` fans out
+    # one branch per targeted category. Each branch returns its
+    # category's candidates and the reducer concatenates them into a
+    # single list before the rule engine runs. Without operator.add
+    # the default reducer REPLACES the list and we'd silently keep
+    # only the last branch's output.
+    raw_candidates: Annotated[list[dict[str, Any]], operator.add]
 
     # ── Populated by rule_engine ────────────────────────────────
     surviving_candidates: list[dict[str, Any]]
@@ -99,3 +106,9 @@ class AgentState(TypedDict, total=False):
     _prompt_version_id: str | None
     _prompt_version_status: str  # 'active', 'candidate', or 'fallback'
     _prompt_system_text: str
+
+    # ── Phase 9 Step 4 — branch-local category for Send fan-out ──
+    # Set by the research router (`research_router` in graph.py) when
+    # it emits one Send per targeted category. The `research_one_node`
+    # reads this and processes exactly that category.
+    _branch_category: str

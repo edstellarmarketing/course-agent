@@ -22,6 +22,7 @@ model returns no pricing — Phase 9 will plug a real price catalogue.
 from __future__ import annotations
 
 import logging
+import threading
 import time
 from dataclasses import dataclass, field
 from typing import Any
@@ -63,9 +64,19 @@ class RunCostLedger:
     Embedding + Serper costs go through ``record_external`` so they
     flow into the same total even though they don't go through this
     wrapper.
+
+    Phase 9 Step 4: ``record_*`` methods are wrapped in a lock so
+    parallel per-category research branches (via LangGraph ``Send``)
+    can safely append concurrently. Reads (``total_usd`` etc.) are
+    cheap and don't lock — they iterate a snapshot of ``self.calls``
+    and any concurrent append simply isn't in the sum yet, which is
+    fine for the cost-ceiling gate that runs between nodes.
     """
 
     calls: list[dict[str, Any]] = field(default_factory=list)
+    _lock: threading.Lock = field(
+        default_factory=threading.Lock, repr=False, compare=False
+    )
 
     @property
     def total_usd(self) -> float:
@@ -80,18 +91,20 @@ class RunCostLedger:
         return sum(c.get("tokens_out", 0) for c in self.calls)
 
     def record_completion(self, c: Completion, *, span: str) -> None:
-        self.calls.append(
-            {
-                "span": span,
-                "model": c.model,
-                "tokens_in": c.tokens_in,
-                "tokens_out": c.tokens_out,
-                "cost_usd": c.cost_usd,
-            }
-        )
+        with self._lock:
+            self.calls.append(
+                {
+                    "span": span,
+                    "model": c.model,
+                    "tokens_in": c.tokens_in,
+                    "tokens_out": c.tokens_out,
+                    "cost_usd": c.cost_usd,
+                }
+            )
 
     def record_external(self, *, span: str, cost_usd: float, **extra: Any) -> None:
-        self.calls.append({"span": span, "cost_usd": cost_usd, **extra})
+        with self._lock:
+            self.calls.append({"span": span, "cost_usd": cost_usd, **extra})
 
 
 class OpenRouterError(RuntimeError):

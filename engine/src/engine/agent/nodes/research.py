@@ -199,20 +199,60 @@ def research_one_category(
     return candidates
 
 
+def research_one_node(state: AgentState) -> AgentState:
+    """One-category research branch — the target of Phase 9 Step 4's
+    LangGraph ``Send`` fan-out.
+
+    The router in ``graph.py`` emits one ``Send("research_one", …)``
+    per targeted category, each carrying ``_branch_category`` plus
+    the shared OpenRouter client and cost ledger. The list reducer
+    on ``raw_candidates`` concatenates every branch's output before
+    the rule engine runs.
+
+    The shared ``RunCostLedger`` is locked on writes (see
+    ``engine.llm.openrouter``), so concurrent appends from parallel
+    branches don't race.
+    """
+    category = state.get("_branch_category")
+    if not category:
+        log.warning("research_one: no _branch_category in state — skipping")
+        return {"raw_candidates": []}
+
+    or_client = state.get("_or_client")  # type: ignore[typeddict-item]
+    ledger = state.get("_ledger")  # type: ignore[typeddict-item]
+    if or_client is None or ledger is None:
+        log.info("research_one category=%r no client/ledger — skipping", category)
+        return {"raw_candidates": []}
+
+    max_candidates = state.get("max_candidates_per_category", 20)
+    system_prompt_base = state.get("_prompt_system_text") or None  # type: ignore[typeddict-item]
+
+    cands = research_one_category(
+        category,
+        max_candidates=max_candidates,
+        or_client=or_client,
+        ledger=ledger,
+        system_prompt_base=system_prompt_base,
+    )
+    return {"raw_candidates": [c.model_dump() for c in cands]}
+
+
 def run(state: AgentState) -> AgentState:
+    """Sequential fallback retained for tests + the legacy CLI path.
+
+    The compiled graph wires ``research_one_node`` behind a fan-out
+    router; this function is no longer on the runtime path. Kept so
+    fixtures and the ``agent research`` subcommand can drive a
+    single-process loop without the LangGraph machinery.
+    """
     targets = state.get("targeted_categories") or []
     max_candidates = state.get("max_candidates_per_category", 20)
     or_client = state.get("_or_client")  # type: ignore[typeddict-item]
     ledger = state.get("_ledger")  # type: ignore[typeddict-item]
     if or_client is None or ledger is None:
-        # Step 1 dry-run runs the stub; once cli.py wires the client
-        # this branch only fires in misconfigured test fixtures.
         log.info("node=research no client/ledger in state — skipping")
         return {"raw_candidates": []}
 
-    # Phase 8 Step 6: prefer the DB-resolved prompt; fall back to the
-    # file load only if feedback_ingest didn't populate state (offline
-    # tools, partial fixtures).
     system_prompt_base = state.get("_prompt_system_text") or None  # type: ignore[typeddict-item]
 
     all_candidates: list[dict[str, Any]] = []
