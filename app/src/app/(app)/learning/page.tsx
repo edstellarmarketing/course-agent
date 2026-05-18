@@ -33,6 +33,7 @@ interface PromptVersionRowRaw {
   notes: string | null;
   approval_rate: number | null;
   runs_observed: number | null;
+  system_prompt: string;
 }
 
 interface RejectionTaxonomyRow {
@@ -70,7 +71,7 @@ export default async function LearningPage() {
     supabase
       .from("prompt_versions")
       .select(
-        "id,version,status,model_slug,notes,approval_rate,runs_observed",
+        "id,version,status,model_slug,notes,approval_rate,runs_observed,system_prompt",
       )
       .order("version", { ascending: false }),
     // For per-prompt-version live win-rate, we recompute from
@@ -247,6 +248,8 @@ export default async function LearningPage() {
                     }
                     approvalRate={approvalRate}
                     runsObserved={runsObserved}
+                    systemPrompt={pv.system_prompt}
+                    canEdit={isAdmin}
                   />
                 );
               })}
