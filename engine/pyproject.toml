@@ -36,6 +36,9 @@ check_approval_rate = "engine.scripts.check_approval_rate:main"
 check_spend = "engine.scripts.check_spend:main"
 # Phase 9 Step 8 — auto-promote prompt versions (flag-gated)
 auto_promote = "engine.scripts.auto_promote:main"
+# One-shot: seed the file-version of research_system.txt as a
+# candidate prompt_versions row (or active, with --promote).
+seed_research_prompt = "engine.scripts.seed_research_prompt:main"
 
 [build-system]
 requires = ["uv_build>=0.9.21,<0.10.0"]
