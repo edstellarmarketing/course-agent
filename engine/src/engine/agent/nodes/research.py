@@ -196,9 +196,16 @@ def research_one_category(
     )
     messages.append({"role": "user", "content": user_prompt})
 
+    # Phase 9 reviewer-feedback round expanded each candidate's JSON
+    # output (content_outline + package_fit + lab_requirements +
+    # edstellar_pitch). A typical 5-candidate response now needs
+    # ~6-8K output tokens; 4096 was truncating responses mid-array
+    # and producing zero validatable candidates. 8192 is the upper
+    # bound for the default research model (deepseek-chat-v3.1) and
+    # most OpenRouter routed alternatives.
     completion = or_client.complete(
         messages,
-        max_tokens=4096,
+        max_tokens=8192,
         temperature=0.4,
         span="research.candidates",
     )
