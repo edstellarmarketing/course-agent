@@ -49,7 +49,11 @@ export function CategoryFormModal({
   const [demandScore, setDemandScore] = useState<number>(
     initialValues?.demandScore ?? 0.5,
   );
-  const [isPinned, setIsPinned] = useState(initialValues?.isPinned ?? true);
+  // Phase 9 reviewer feedback: default new categories to UNPINNED.
+  // Pinning forces the agent to research the category every day; the
+  // overwhelming default should be "let the rotation logic in
+  // gap_analyze decide." Admins still opt-in for strategic categories.
+  const [isPinned, setIsPinned] = useState(initialValues?.isPinned ?? false);
   const [notes, setNotes] = useState(initialValues?.notes ?? "");
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const errorId = useId();
