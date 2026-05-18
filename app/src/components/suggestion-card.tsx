@@ -34,21 +34,35 @@ const PACKAGE_TONE: Record<EdstellarPackage, string> = {
 };
 
 /**
- * License bank size per package (matches edstellar.com/corporate-training-pricing).
- * Custom is "unlimited" so we render utilisation as a dash.
+ * Corporate-training-value tier table.
+ *
+ * Maps the buyer-visible group size to Edstellar's package tier and
+ * the published discount-vs-Starter on edstellar.com/corporate-training-
+ * pricing. The "label" is the buyer scenario the tier serves.
+ *
+ * If sales updates the tier breakpoints or discount percentages,
+ * update this single constant.
  */
-const PACKAGE_BANK_SIZE: Record<EdstellarPackage, number | null> = {
-  Starter: 120,
-  Growth: 320,
-  Enterprise: 800,
-  Custom: null,
-};
+interface ValueTier {
+  groupSize: number;
+  packageName: EdstellarPackage;
+  discountPct: number | null; // null = Custom / contact-sales pricing
+  scenario: string;
+}
 
-function bankUtilisation(pf: import("@/lib/types").PackageFit): string {
-  const bank = PACKAGE_BANK_SIZE[pf.primaryPackage];
-  if (bank == null) return "Unlimited";
-  const pct = Math.round((pf.licensesPerBatchOf10 / bank) * 100);
-  return `${pct}%`;
+const VALUE_TIERS: ValueTier[] = [
+  { groupSize: 10, packageName: "Starter", discountPct: 0, scenario: "pilot" },
+  { groupSize: 25, packageName: "Growth", discountPct: 10, scenario: "quarterly" },
+  { groupSize: 50, packageName: "Enterprise", discountPct: 20, scenario: "scale" },
+  { groupSize: 100, packageName: "Custom", discountPct: null, scenario: "org-wide" },
+];
+
+function dayEquivalent(hoursMin: number | null | undefined, hoursMax: number | null | undefined): string | null {
+  if (hoursMin == null || hoursMax == null) return null;
+  const dMin = Math.max(1, Math.round(hoursMin / 8));
+  const dMax = Math.max(1, Math.round(hoursMax / 8));
+  if (dMin === dMax) return `${dMin}-day workshop`;
+  return `${dMin}-${dMax} day workshop`;
 }
 
 function formatDuration(s: Suggestion): string {
@@ -161,62 +175,13 @@ export function SuggestionCard({
           </dl>
 
           {packageFit && (
-            <div className="mt-4 rounded-md border border-gray-100 bg-off-white p-4">
-              <div className="flex flex-wrap items-baseline gap-2">
-                <span className="font-display text-[10px] font-semibold uppercase tracking-widest text-orange">
-                  Package fit
-                </span>
-                <span
-                  className={cn(
-                    "rounded-full px-2 py-0.5 font-display text-[11px] font-semibold uppercase tracking-wider",
-                    PACKAGE_TONE[packageFit.primaryPackage] ??
-                      "bg-gray-100 text-gray-700",
-                  )}
-                >
-                  {packageFit.primaryPackage}
-                </span>
-              </div>
-
-              <div className="mt-3 grid grid-cols-1 gap-3 text-sm sm:grid-cols-3">
-                <div className="rounded-md border border-gray-100 bg-white p-3">
-                  <div className="font-display text-[10px] font-semibold uppercase tracking-widest text-gray-500">
-                    Licenses for a group of 10
-                  </div>
-                  <div className="mt-1 font-mono text-lg font-bold text-navy-deep">
-                    {packageFit.licensesPerBatchOf10}
-                  </div>
-                  <div className="mt-0.5 font-mono text-[10px] text-gray-400">
-                    {packageFit.licenseMath}
-                  </div>
-                </div>
-                <div className="rounded-md border border-gray-100 bg-white p-3">
-                  <div className="font-display text-[10px] font-semibold uppercase tracking-widest text-gray-500">
-                    Estimated cost for a batch of 10
-                  </div>
-                  <div className="mt-1 font-mono text-lg font-bold text-navy-deep">
-                    {dollarsUsd(suggestion.suggestedPriceUsd * 10)}
-                  </div>
-                  <div className="mt-0.5 font-mono text-[10px] text-gray-400">
-                    {dollarsUsd(suggestion.suggestedPriceUsd)} / seat × 10
-                  </div>
-                </div>
-                <div className="rounded-md border border-gray-100 bg-white p-3">
-                  <div className="font-display text-[10px] font-semibold uppercase tracking-widest text-gray-500">
-                    Bank utilisation
-                  </div>
-                  <div className="mt-1 font-mono text-lg font-bold text-navy-deep">
-                    {bankUtilisation(packageFit)}
-                  </div>
-                  <div className="mt-0.5 font-mono text-[10px] text-gray-400">
-                    of the {packageFit.primaryPackage} license bank
-                  </div>
-                </div>
-              </div>
-
-              <p className="mt-3 text-sm leading-relaxed text-gray-700">
-                {packageFit.packageRationale}
-              </p>
-            </div>
+            <ValuePanel
+              perSeatUsd={suggestion.suggestedPriceUsd}
+              durationHoursMin={suggestion.durationHoursMin}
+              durationHoursMax={suggestion.durationHoursMax}
+              durationDaysLegacy={suggestion.durationDays}
+              packageFit={packageFit}
+            />
           )}
 
           <div className="mt-3 rounded-md border border-gray-100 bg-off-white p-3 text-xs leading-relaxed text-gray-600">
@@ -423,6 +388,194 @@ export function SuggestionCard({
         </aside>
       </div>
     </details>
+  );
+}
+
+function ValuePanel({
+  perSeatUsd,
+  durationHoursMin,
+  durationHoursMax,
+  durationDaysLegacy,
+  packageFit,
+}: {
+  perSeatUsd: number;
+  durationHoursMin: number | null | undefined;
+  durationHoursMax: number | null | undefined;
+  durationDaysLegacy: number | null;
+  packageFit: import("@/lib/types").PackageFit;
+}) {
+  // Per-hour anchor uses the upper bound so it's a conservative
+  // (higher) hourly figure — buyers should not be surprised on the
+  // upside. Falls back to legacy day count when the new range isn't
+  // populated.
+  const hours =
+    durationHoursMax ??
+    durationHoursMin ??
+    (durationDaysLegacy != null ? durationDaysLegacy * 8 : null);
+  const perHour = hours != null && hours > 0 ? perSeatUsd / hours : null;
+  const deliveryShape =
+    dayEquivalent(durationHoursMin, durationHoursMax) ??
+    (durationDaysLegacy != null
+      ? `${durationDaysLegacy}-day workshop`
+      : "instructor-led");
+
+  return (
+    <section className="mt-4 rounded-md border border-gray-100 bg-off-white p-4">
+      <div className="font-display text-[10px] font-semibold uppercase tracking-widest text-orange">
+        Corporate training value
+      </div>
+
+      {/* Section 1: unit economics tiles */}
+      <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <ValueTile
+          label="Per trainee"
+          value={dollarsUsd(perSeatUsd)}
+          hint="full course"
+        />
+        <ValueTile
+          label="Per trainee-hour"
+          value={perHour != null ? `${dollarsUsd(perHour)} / hr` : "—"}
+          hint={
+            hours != null
+              ? `${hours}-hr program`
+              : "duration not specified"
+          }
+        />
+        <ValueTile
+          label="Typical delivery"
+          value={deliveryShape}
+          hint="virtual or onsite"
+          mono={false}
+        />
+      </div>
+
+      {/* Section 2: scale-your-rollout table */}
+      <div className="mt-4 overflow-x-auto rounded-md border border-gray-100 bg-white">
+        <div className="border-b border-gray-100 px-3 py-2 font-display text-[10px] font-semibold uppercase tracking-widest text-gray-500">
+          Scale your rollout
+        </div>
+        <table className="w-full text-sm">
+          <thead className="bg-gray-50 text-left text-[10px] uppercase tracking-widest text-gray-500">
+            <tr>
+              <th className="px-3 py-2 font-display font-semibold">Group size</th>
+              <th className="px-3 py-2 font-display font-semibold">Investment</th>
+              <th className="px-3 py-2 font-display font-semibold">Edstellar package</th>
+              <th className="px-3 py-2 font-display font-semibold">You save</th>
+              <th className="px-3 py-2 font-display font-semibold">Best fit?</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {VALUE_TIERS.map((tier) => {
+              const isRecommended =
+                tier.packageName === packageFit.primaryPackage;
+              const baseInvest = perSeatUsd * tier.groupSize;
+              const savings =
+                tier.discountPct != null
+                  ? Math.round(baseInvest * (tier.discountPct / 100))
+                  : null;
+              const finalInvest =
+                tier.discountPct != null ? baseInvest - (savings ?? 0) : baseInvest;
+
+              return (
+                <tr
+                  key={tier.packageName}
+                  className={cn(
+                    "hover:bg-gray-50",
+                    isRecommended && "bg-orange-pale/30",
+                  )}
+                >
+                  <td className="px-3 py-2 font-mono text-xs text-gray-700">
+                    {tier.groupSize} ppl
+                  </td>
+                  <td className="px-3 py-2 font-mono font-semibold text-navy-deep">
+                    {tier.discountPct == null
+                      ? "Contact sales"
+                      : dollarsUsd(finalInvest)}
+                  </td>
+                  <td className="px-3 py-2">
+                    <span
+                      className={cn(
+                        "rounded-full px-2 py-0.5 font-display text-[10px] font-semibold uppercase tracking-wider",
+                        PACKAGE_TONE[tier.packageName],
+                      )}
+                    >
+                      {tier.packageName}
+                    </span>
+                    {tier.discountPct != null && tier.discountPct > 0 && (
+                      <span className="ml-1 font-mono text-[10px] text-gray-500">
+                        ~{tier.discountPct}% off
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-3 py-2">
+                    {savings != null && savings > 0 ? (
+                      <span className="font-mono text-xs font-semibold text-green-700">
+                        -{dollarsUsd(savings)}
+                      </span>
+                    ) : tier.discountPct == null ? (
+                      <span className="text-[11px] italic text-gray-400">
+                        per-employee pricing
+                      </span>
+                    ) : (
+                      <span className="font-mono text-xs text-gray-400">—</span>
+                    )}
+                  </td>
+                  <td className="px-3 py-2 text-xs">
+                    {isRecommended ? (
+                      <span className="font-display font-semibold uppercase tracking-wider text-orange">
+                        ★ {tier.scenario}
+                      </span>
+                    ) : (
+                      <span className="text-gray-500">{tier.scenario}</span>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Section 3: agent recommendation + rationale */}
+      <div className="mt-3 rounded-md border border-orange/30 bg-orange/5 p-3 text-sm leading-relaxed text-gray-700">
+        <span className="font-display text-[10px] font-semibold uppercase tracking-widest text-orange">
+          ★ Agent recommends ·{" "}
+        </span>
+        <span className="font-mono text-[11px] font-semibold text-navy-deep">
+          {packageFit.primaryPackage}
+        </span>{" "}
+        — {packageFit.packageRationale}
+      </div>
+    </section>
+  );
+}
+
+function ValueTile({
+  label,
+  value,
+  hint,
+  mono = true,
+}: {
+  label: string;
+  value: string;
+  hint: string;
+  mono?: boolean;
+}) {
+  return (
+    <div className="rounded-md border border-gray-100 bg-white p-3">
+      <div className="font-display text-[10px] font-semibold uppercase tracking-widest text-gray-500">
+        {label}
+      </div>
+      <div
+        className={cn(
+          "mt-1 text-lg font-bold text-navy-deep",
+          mono && "font-mono",
+        )}
+      >
+        {value}
+      </div>
+      <div className="mt-0.5 text-[11px] text-gray-500">{hint}</div>
+    </div>
   );
 }
 
