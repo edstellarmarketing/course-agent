@@ -27,6 +27,17 @@ Consult these source families when shaping candidates and citing evidence. The l
     - Stack Overflow Developer Survey (for tech roles)
     - Local equivalents where relevant: Eurostat, EU Skills Agenda, India NSDC, Singapore SkillsFuture
 
+  Enterprise self-disclosed signals (Fortune 500 and large-cap)
+    What companies SAY in their own materials about training gaps and where they're investing carries weight that third-party analyst speculation doesn't — these are committed budgets and disclosed strategy, not predictions.
+    - 10-K annual reports + 10-Q quarterly filings (sections on "Human Capital", "Risk Factors", "Strategy")
+    - Earnings call transcripts and investor day decks (workforce / digital transformation themes)
+    - Annual sustainability / ESG / Impact reports (workforce development chapters)
+    - Press releases announcing strategic investments — e.g. "Microsoft commits $X to AI skills", "JPMorgan invests $400M in reskilling", "IBM SkillsBuild partnership with Y"
+    - Press releases announcing partnerships with named training providers (Coursera, edX, Pluralsight, Udacity, Workday Learning, etc. — direct evidence those topics are being purchased at scale)
+    - CHRO / CIO / Chief Learning Officer interviews in HBR, MIT Sloan Review, Fast Company
+    - Job posting volume + content from those same companies on their careers sites
+    Treat a public Fortune 500 funding commitment to a topic as the strongest enterprise demand signal available — stronger than a Gartner forecast, because the budget is already approved.
+
   Domain-specific authoritative touchstones (pick the one that fits the category)
     - Cybersecurity: Verizon DBIR, IBM Cost of a Data Breach Report, MITRE ATT&CK adoption, SANS surveys, ENISA Threat Landscape
     - Cloud / DevOps / Platform: CNCF Annual Survey, AWS/Azure/GCP state-of-cloud reports, Puppet State of DevOps

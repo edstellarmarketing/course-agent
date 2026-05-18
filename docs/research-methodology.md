@@ -63,16 +63,21 @@ and Rule 10 actually checks the title against a blocklist file.
 ## The agent's research method, in plain language
 
 Before drafting candidates, the agent is instructed to triangulate
-on three signals:
+on four signals:
 
 1. **Public analyst forecasts** naming a specific skill or capability gap
 2. **Enterprise hiring trends** showing organizations are budgeting for it
-3. **Vendor / conference programming** showing teams are actively being trained on it
+3. **Fortune 500 self-disclosed investments** — what companies say in their own filings, earnings calls, and press releases about training gaps they're spending real money to close
+4. **Vendor / conference programming** showing teams are actively being trained on it
 
-The strongest courses sit at the intersection of all three. The
+The strongest courses sit at the intersection of all four. The
 agent is asked to consult these source families. The list is
 guidance — when a more authoritative source exists for the topic,
 the agent should use it.
+
+Of the four, Fortune 500 self-disclosure is the highest-trust
+signal: it's committed budget that's already passed legal and
+board review, not a third-party prediction.
 
 ### Tier-1 industry analyst reports
 
@@ -94,6 +99,41 @@ the agent should use it.
 | Burning Glass / Lightcast | Granular skill-frequency in job postings |
 | Stack Overflow Developer Survey | Technologist adoption and salary signals |
 | Eurostat, EU Skills Agenda, India NSDC, Singapore SkillsFuture | Regional skill-gap data |
+
+### Enterprise self-disclosed signals (Fortune 500 + large-cap)
+
+What companies say in their own materials about training gaps and
+where they're investing carries weight third-party analyst
+speculation doesn't — these are **committed budgets and disclosed
+strategy**, not predictions. Treat a public Fortune 500 funding
+commitment to a topic as the strongest enterprise demand signal
+available — stronger than a Gartner forecast, because the budget
+is already approved.
+
+| Source | What to extract from it |
+|---|---|
+| 10-K annual reports, 10-Q filings | "Human Capital", "Risk Factors", and "Strategy" sections name specific skill gaps companies disclose to investors |
+| Earnings call transcripts, investor day decks | Workforce / digital-transformation themes leadership is committing to publicly |
+| Annual sustainability / ESG / Impact reports | Workforce development chapters often quantify training spend |
+| Press releases announcing strategic investments | e.g. "Microsoft commits $X to AI skills", "JPMorgan invests $400M in reskilling", "IBM SkillsBuild partnership with Y" — direct dollar evidence |
+| Press releases announcing partnerships with named training providers | Coursera, edX, Pluralsight, Udacity, Workday Learning, INSEAD partnerships — proof those topics are being purchased at scale |
+| CHRO / CIO / Chief Learning Officer interviews | HBR, MIT Sloan Review, Fast Company — leaders narrating their own training strategy |
+| Job posting volume + content from these companies' careers sites | The skills they're actively hiring for, and the supporting training they expect candidates to need |
+
+**Examples of well-known Fortune 500 commitments** the agent can
+cite as benchmarks of the kind of evidence to look for:
+
+- Microsoft "Skills for Jobs" — public commitments around AI and digital skills
+- Google's $1B+ commitments to AI training and partnerships
+- JPMorgan Chase $400M reskilling commitment ("New Skills at Work")
+- IBM SkillsBuild + P-TECH education partnerships
+- Walmart's $1B associate education investment ("Live Better U")
+- McDonald's "Archways to Opportunity"
+- Amazon's $1.2B "Upskilling 2025" commitment
+
+These are real, public, dollar-quantified investments. If the
+agent's research turns up similar disclosures for adjacent skills,
+that's strong evidence the course is in a fundable category.
 
 ### Domain-specific authoritative touchstones
 
