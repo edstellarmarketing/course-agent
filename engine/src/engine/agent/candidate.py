@@ -25,6 +25,11 @@ from pydantic import BaseModel, Field
 class CandidateReference(BaseModel):
     name: str
     url: str
+    # Phase 9 reviewer-feedback: optional verbatim sentence from the
+    # source page that supports the candidate. The agent is instructed
+    # to omit this field when not high-confidence — a missing quote is
+    # better than a fabricated one. UI displays it under each reference.
+    quote: str | None = None
 
 
 class OutlineModule(BaseModel):

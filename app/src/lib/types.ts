@@ -82,6 +82,9 @@ export interface SuggestionReference {
   name: string;
   url: string;
   accessedAt?: IsoTimestamp;
+  /** Phase 9 reviewer-feedback: verbatim sentence from the source page
+   * supporting the candidate. Optional — agent omits when not high-confidence. */
+  quote?: string | null;
 }
 
 /** One module entry in a suggestion's content_outline. */

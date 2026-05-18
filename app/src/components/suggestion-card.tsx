@@ -33,6 +33,24 @@ const PACKAGE_TONE: Record<EdstellarPackage, string> = {
   Custom: "bg-green-soft text-green-700",
 };
 
+/**
+ * License bank size per package (matches edstellar.com/corporate-training-pricing).
+ * Custom is "unlimited" so we render utilisation as a dash.
+ */
+const PACKAGE_BANK_SIZE: Record<EdstellarPackage, number | null> = {
+  Starter: 120,
+  Growth: 320,
+  Enterprise: 800,
+  Custom: null,
+};
+
+function bankUtilisation(pf: import("@/lib/types").PackageFit): string {
+  const bank = PACKAGE_BANK_SIZE[pf.primaryPackage];
+  if (bank == null) return "Unlimited";
+  const pct = Math.round((pf.licensesPerBatchOf10 / bank) * 100);
+  return `${pct}%`;
+}
+
 function formatDuration(s: Suggestion): string {
   if (s.durationHoursMin != null && s.durationHoursMax != null) {
     return s.durationHoursMin === s.durationHoursMax
@@ -115,14 +133,45 @@ export function SuggestionCard({
               >
                 {packageFit.primaryPackage}
               </span>
-              <span className="font-mono text-xs text-gray-600">
-                {packageFit.licensesPerBatchOf10} licenses / batch of 10
-              </span>
             </div>
-            <div className="mt-1 font-mono text-[11px] text-gray-500">
-              {packageFit.licenseMath}
+
+            <div className="mt-3 grid grid-cols-1 gap-3 text-sm sm:grid-cols-3">
+              <div className="rounded-md border border-gray-100 bg-white p-3">
+                <div className="font-display text-[10px] font-semibold uppercase tracking-widest text-gray-500">
+                  Licenses for a group of 10
+                </div>
+                <div className="mt-1 font-mono text-lg font-bold text-navy-deep">
+                  {packageFit.licensesPerBatchOf10}
+                </div>
+                <div className="mt-0.5 font-mono text-[10px] text-gray-400">
+                  {packageFit.licenseMath}
+                </div>
+              </div>
+              <div className="rounded-md border border-gray-100 bg-white p-3">
+                <div className="font-display text-[10px] font-semibold uppercase tracking-widest text-gray-500">
+                  Estimated cost for a batch of 10
+                </div>
+                <div className="mt-1 font-mono text-lg font-bold text-navy-deep">
+                  {dollarsUsd(suggestion.suggestedPriceUsd * 10)}
+                </div>
+                <div className="mt-0.5 font-mono text-[10px] text-gray-400">
+                  {dollarsUsd(suggestion.suggestedPriceUsd)} / seat × 10
+                </div>
+              </div>
+              <div className="rounded-md border border-gray-100 bg-white p-3">
+                <div className="font-display text-[10px] font-semibold uppercase tracking-widest text-gray-500">
+                  Bank utilisation
+                </div>
+                <div className="mt-1 font-mono text-lg font-bold text-navy-deep">
+                  {bankUtilisation(packageFit)}
+                </div>
+                <div className="mt-0.5 font-mono text-[10px] text-gray-400">
+                  of the {packageFit.primaryPackage} license bank
+                </div>
+              </div>
             </div>
-            <p className="mt-2 text-sm leading-relaxed text-gray-700">
+
+            <p className="mt-3 text-sm leading-relaxed text-gray-700">
               {packageFit.packageRationale}
             </p>
           </div>
@@ -241,20 +290,35 @@ export function SuggestionCard({
 
         <div className="mt-4">
           <div className="mb-1.5 font-display text-[10px] font-semibold uppercase tracking-widest text-gray-500">
-            References
+            References · {suggestion.references.length}
           </div>
-          <ul className="flex flex-wrap gap-1.5">
+          <ul className="space-y-2">
             {suggestion.references.map((ref) => (
-              <li key={ref.url}>
+              <li
+                key={ref.url}
+                className="rounded-md border border-gray-100 bg-white p-3"
+              >
                 <a
                   href={ref.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex max-w-xs items-center gap-1.5 truncate rounded-full border border-gray-200 bg-white px-2.5 py-1 text-xs text-gray-700 transition-colors hover:border-navy hover:bg-navy-soft hover:text-navy-deep"
+                  className="inline-flex max-w-full items-center gap-1.5 text-sm font-medium text-navy-deep transition-colors hover:text-orange"
                 >
                   <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-orange" />
                   <span className="truncate">{ref.name}</span>
+                  <span className="text-[10px] text-gray-400">↗</span>
                 </a>
+                <div className="mt-0.5 truncate font-mono text-[10px] text-gray-400">
+                  {ref.url}
+                </div>
+                {ref.quote && (
+                  <blockquote className="mt-2 border-l-2 border-orange-pale pl-3 text-[13px] leading-relaxed text-gray-700">
+                    <span className="font-display text-[9px] font-semibold uppercase tracking-widest text-orange">
+                      Agent-attributed ·{" "}
+                    </span>
+                    &ldquo;{ref.quote}&rdquo;
+                  </blockquote>
+                )}
               </li>
             ))}
           </ul>

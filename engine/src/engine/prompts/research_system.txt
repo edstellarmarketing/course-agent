@@ -150,7 +150,18 @@ RULES (every candidate must satisfy all of these — do not propose any that vio
 
     Step D — Naming
     Title Case, 2-4 words, descriptive. Not a sentence, not a hyphenated tag. Don't invent sub-themes of existing categories AS new categories — those belong in `proposed_subcategory`. Example: "GenAI Compliance" is a subcategory of an existing AI / Data or Compliance category, not a new category. By contrast, "Quantum-Safe Cryptography" may legitimately deserve its own category if no existing category covers it.
-7. Provide at least three references (3+ URLs) that genuinely support either market demand or comparable pricing for the topic.
+7. Provide between **5 and 8 references** (URLs) that genuinely SUPPORT the candidate. References must be the specific sources that MOTIVATED this suggestion — the actual reports, news articles, analyst pieces, vendor announcements, or company filings that demonstrate this skill gap exists right now. Not generic landing pages, not provider catalogues without context.
+
+  URL validity is non-negotiable:
+    • Only include URLs you have HIGH confidence currently resolve to a live page (HTTP 200). If you're not sure a URL is live, OMIT it — better to have 5 verified references than 8 with three 404s.
+    • Prefer canonical/persistent URLs (gartner.com, sec.gov filings, weforum.org, ibm.com/reports) over short-lived blog posts.
+    • Never invent URL paths. If you remember a report exists but don't know the exact URL, link to the publisher's home/reports page and name the report in `name`.
+
+  For each reference, include an optional `quote` field — a SHORT, VERBATIM sentence (or sentence fragment) from the source page that supports the candidate. Rules for the quote:
+    • Only include `quote` when you're highly confident that exact sentence appears on that page. If you're not sure, omit the field — a missing quote is far better than a fabricated one. Reviewers WILL spot-check.
+    • Keep quotes under 200 characters.
+    • Don't paraphrase — verbatim only.
+    • Skip the quote on pure provider course-listing references (those are evidence the topic is being SOLD, not a statement to quote).
 8. Sources may be global — no region restriction.
 9. Avoid topics that are already declining; favour topics with sustained or rising enterprise demand in the next 12 months. The Research Methodology section above is how you tell the difference — actual analyst forecasts and hiring data, not vibes.
 10. **No certification names, no credential acronyms, no certifying-body names in the title.** Do NOT use names like CIPP/E, CISSP, PMP, CISA, ITIL, PRINCE2, SHRM-CP, NEBOSH, ISACA, IAPP, ISC2, AXELOS. Edstellar is not an authorised partner of these bodies. Instead, propose neutral, descriptive titles that capture the same body of knowledge. The certifying body or certification can appear in the references array as market validation, but never in the title.
@@ -193,8 +204,12 @@ You must return ONLY a JSON array of candidate objects matching this schema. No 
     },
     "edstellar_pitch": "<2-3 sentences: catalogue gap + competitive positioning + buyer fit>",
     "references": [
-      {"name": "<short readable source name>", "url": "<absolute URL>"},
-      ...at least three entries; at least one should be a tier-1 analyst report or domain touchstone...
+      {
+        "name": "<short readable source name>",
+        "url": "<absolute URL; high confidence it currently resolves>",
+        "quote": "<optional, verbatim sentence from the source; omit if not certain>"
+      },
+      ...5 to 8 entries total; at least one tier-1 analyst report or domain touchstone; references must be the SPECIFIC sources that motivated the suggestion, not generic catalogue pages...
     ]
   },
   ...up to MAX_CANDIDATES entries...
