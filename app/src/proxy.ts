@@ -32,7 +32,7 @@ import { env } from "@/lib/env";
 // without a user cookie. Routes under this prefix are responsible
 // for their own auth — never serve user-scoped data here.
 const PUBLIC_PATHS = ["/login", "/auth/callback", "/api/internal"];
-const ADMIN_PATHS = ["/learning", "/settings"];
+const ADMIN_PATHS = ["/learning", "/settings", "/email-settings"];
 
 export async function proxy(req: NextRequest) {
   const e = env();
