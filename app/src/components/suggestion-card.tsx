@@ -4,10 +4,30 @@ import { RuleBadge } from "@/components/rule-badge";
 import type { EdstellarPackage, Suggestion } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
+/**
+ * Resolution of the suggestion's `category` against the curated
+ * `categories` table + the live pending queue. Hydrated by the page
+ * that renders this card — null/undefined just hides the section.
+ *
+ * `pendingInCategory` includes the current suggestion. We display
+ * "N − 1 other suggestions share this category" so the count is
+ * intuitive even when there's only the one card.
+ */
+export interface CategoryContext {
+  /** True when suggestion.category is in `course-agent.categories`. */
+  exists: boolean;
+  /** Number of `courses` rows under this category (0 if new). */
+  existingCourseCount: number;
+  /** Pending suggestions (incl. this one) using the same category. */
+  pendingInCategory: number;
+}
+
 interface SuggestionCardProps {
   suggestion: Suggestion;
   actions?: React.ReactNode;
   className?: string;
+  /** Optional — when present, renders the "Category fit" block. */
+  categoryContext?: CategoryContext | null;
 }
 
 const dollarsUsd = (n: number) =>
@@ -81,6 +101,7 @@ export function SuggestionCard({
   suggestion,
   actions,
   className,
+  categoryContext,
 }: SuggestionCardProps) {
   const closest = suggestion.closestExistingCourse;
   const outline = suggestion.contentOutline ?? [];
@@ -377,6 +398,13 @@ export function SuggestionCard({
             </div>
           )}
 
+          {categoryContext && (
+            <CategoryFit
+              category={suggestion.category}
+              context={categoryContext}
+            />
+          )}
+
           <div className="mt-4 border-t border-gray-100 pt-3">
             <Link
               href={`/suggestions/${suggestion.id}`}
@@ -612,6 +640,86 @@ function SimilarityBar({ value }: { value: number }) {
         className={cn("h-full rounded-full", tone)}
         style={{ width: `${pct}%` }}
       />
+    </div>
+  );
+}
+
+/**
+ * Tells the reviewer whether the suggestion's category already exists
+ * in the catalogue, plus how many other pending suggestions share it.
+ * Two or more pending suggestions on the same new category is the
+ * signal that "this is a real gap, consider creating the category."
+ */
+function CategoryFit({
+  category,
+  context,
+}: {
+  category: string;
+  context: CategoryContext;
+}) {
+  const { exists, existingCourseCount, pendingInCategory } = context;
+  const otherPending = Math.max(0, pendingInCategory - 1);
+  const newCategoryUrl = `/categories?suggest=${encodeURIComponent(category)}`;
+
+  return (
+    <div className="mt-4 border-t border-gray-100 pt-3">
+      <div className="mb-2 font-display text-[10px] font-semibold uppercase tracking-widest text-orange">
+        Category fit
+      </div>
+      {exists ? (
+        <div className="text-sm text-gray-700">
+          <span className="mr-1 text-green-700" aria-hidden>
+            ✓
+          </span>
+          Filed under{" "}
+          <span className="font-medium text-navy-deep">
+            &ldquo;{category}&rdquo;
+          </span>
+          <div className="mt-0.5 text-[11px] text-gray-500">
+            {existingCourseCount === 0
+              ? "Curated category, no courses yet."
+              : `${existingCourseCount} existing course${
+                  existingCourseCount === 1 ? "" : "s"
+                } in the catalogue.`}
+          </div>
+        </div>
+      ) : (
+        <div className="text-sm text-gray-700">
+          <span className="mr-1 text-amber-700" aria-hidden>
+            ⚠
+          </span>
+          New category —{" "}
+          <span className="font-medium text-navy-deep">
+            &ldquo;{category}&rdquo;
+          </span>{" "}
+          isn&rsquo;t in the catalogue yet.
+          {otherPending > 0 ? (
+            <div className="mt-2 rounded-md border border-amber-200 bg-amber-soft px-2.5 py-2 text-[12px] text-amber-900">
+              <strong>{otherPending}</strong> other pending{" "}
+              {otherPending === 1 ? "suggestion shares" : "suggestions share"}{" "}
+              this category — strong signal you should{" "}
+              <Link
+                href={newCategoryUrl}
+                className="font-medium underline-offset-2 hover:underline"
+              >
+                add it to the catalogue
+              </Link>
+              .
+            </div>
+          ) : (
+            <div className="mt-1 text-[11px] text-gray-500">
+              Approving will auto-create the category. You can also{" "}
+              <Link
+                href={newCategoryUrl}
+                className="font-medium text-navy hover:text-navy-deep"
+              >
+                add it manually
+              </Link>{" "}
+              first.
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

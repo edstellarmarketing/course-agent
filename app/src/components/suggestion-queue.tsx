@@ -5,7 +5,10 @@ import { useState, useTransition } from "react";
 import { NeedsRevisionModal } from "@/components/needs-revision-modal";
 import { RejectModal } from "@/components/reject-modal";
 import { SendEmailModal } from "@/components/send-email-modal";
-import { SuggestionCard } from "@/components/suggestion-card";
+import {
+  SuggestionCard,
+  type CategoryContext,
+} from "@/components/suggestion-card";
 import {
   approveSuggestion,
   emailSuggestion,
@@ -21,6 +24,8 @@ import type {
 interface SuggestionQueueProps {
   suggestions: Suggestion[];
   tags: RejectionTag[];
+  /** Per-category context: existence + course count + pending count. */
+  categoryContext?: Record<string, CategoryContext>;
 }
 
 /**
@@ -30,7 +35,11 @@ interface SuggestionQueueProps {
  * un-approve on a race error, which the doc explicitly calls out as a
  * trap. Click → action → revalidate is the safe MVP.
  */
-export function SuggestionQueue({ suggestions, tags }: SuggestionQueueProps) {
+export function SuggestionQueue({
+  suggestions,
+  tags,
+  categoryContext,
+}: SuggestionQueueProps) {
   const [rejecting, setRejecting] = useState<Suggestion | null>(null);
   const [reviewing, setReviewing] = useState<Suggestion | null>(null);
   /** Card being emailed — opens the SendEmailModal when non-null. */
@@ -174,6 +183,7 @@ export function SuggestionQueue({ suggestions, tags }: SuggestionQueueProps) {
             <li key={s.id}>
               <SuggestionCard
                 suggestion={s}
+                categoryContext={categoryContext?.[s.category] ?? null}
                 actions={
                   <CardActions
                     disabled={pending}

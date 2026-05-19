@@ -1,4 +1,5 @@
 import { PageHeader } from "@/components/page-header";
+import type { CategoryContext } from "@/components/suggestion-card";
 import { SuggestionQueue } from "@/components/suggestion-queue";
 import { getCurrentReviewer } from "@/lib/auth/current-user";
 import { createSessionClient } from "@/lib/supabase/server-with-session";
@@ -115,25 +116,31 @@ export default async function SuggestionsTodayPage() {
     queueQuery = queueQuery.or(`assignee_id.is.null,assignee_id.eq.${userId}`);
   }
 
-  // Three independent reads — fire them in parallel.
+  // Four independent reads — fire them in parallel.
   // 1. The pending queue itself (filtered by assignee for reviewers).
   // 2. The most-recent agent_run for the header banner.
   // 3. The rejection taxonomy for the Reject modal.
-  const [queueResult, runResult, taxonomyResult] = await Promise.all([
-    queueQuery,
-    supabase
-      .from("agent_runs")
-      .select(
-        "id,started_at,finished_at,model_used,categories_targeted,candidates_produced,candidates_persisted",
-      )
-      .order("started_at", { ascending: false })
-      .limit(1)
-      .maybeSingle(),
-    supabase
-      .from("rejection_taxonomy")
-      .select("key,label,description,rare")
-      .order("sort_order"),
-  ]);
+  // 4. categories_with_counts → drives the "Category fit" block on
+  //    each card (does this category exist? how many courses already?).
+  const [queueResult, runResult, taxonomyResult, categoriesResult] =
+    await Promise.all([
+      queueQuery,
+      supabase
+        .from("agent_runs")
+        .select(
+          "id,started_at,finished_at,model_used,categories_targeted,candidates_produced,candidates_persisted",
+        )
+        .order("started_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      supabase
+        .from("rejection_taxonomy")
+        .select("key,label,description,rare")
+        .order("sort_order"),
+      supabase
+        .from("categories_with_counts")
+        .select("name,course_count"),
+    ]);
 
   if (queueResult.error) {
     console.error("[suggestions/today] queue query failed:", queueResult.error);
@@ -147,9 +154,43 @@ export default async function SuggestionsTodayPage() {
       taxonomyResult.error,
     );
   }
+  if (categoriesResult.error) {
+    console.error(
+      "[suggestions/today] categories_with_counts query failed:",
+      categoriesResult.error,
+    );
+  }
 
   const queue = (queueResult.data ?? []) as SuggestionRow[];
   const pending: Suggestion[] = queue.map(rowToSuggestion);
+
+  // ── Category-fit context ────────────────────────────────────────
+  // For every category that appears in the pending queue, look up
+  // whether it's in `categories_with_counts` and how many other
+  // pending cards share it. The card uses this to render either
+  // "filed under existing category (N courses)" or "new category —
+  // M others share this, consider creating it".
+  const existingCategoryCounts = new Map<string, number>(
+    ((categoriesResult.data ?? []) as {
+      name: string;
+      course_count: number;
+    }[]).map((c) => [c.name, c.course_count]),
+  );
+  const pendingByCategory = new Map<string, number>();
+  for (const s of pending) {
+    pendingByCategory.set(
+      s.category,
+      (pendingByCategory.get(s.category) ?? 0) + 1,
+    );
+  }
+  const categoryContext: Record<string, CategoryContext> = {};
+  for (const [category, pendingCount] of pendingByCategory) {
+    categoryContext[category] = {
+      exists: existingCategoryCounts.has(category),
+      existingCourseCount: existingCategoryCounts.get(category) ?? 0,
+      pendingInCategory: pendingCount,
+    };
+  }
 
   const run = (runResult.data ?? null) as AgentRunRow | null;
   const tags: RejectionTag[] = (
@@ -198,7 +239,11 @@ export default async function SuggestionsTodayPage() {
           </div>
         )}
 
-        <SuggestionQueue suggestions={pending} tags={tags} />
+        <SuggestionQueue
+          suggestions={pending}
+          tags={tags}
+          categoryContext={categoryContext}
+        />
       </div>
     </>
   );

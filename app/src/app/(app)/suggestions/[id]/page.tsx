@@ -3,7 +3,10 @@ import { notFound } from "next/navigation";
 
 import { DecisionPanel } from "@/components/decision-panel";
 import { PageHeader } from "@/components/page-header";
-import { SuggestionCard } from "@/components/suggestion-card";
+import {
+  SuggestionCard,
+  type CategoryContext,
+} from "@/components/suggestion-card";
 import { createSessionClient } from "@/lib/supabase/server-with-session";
 import type {
   FeedbackDecision,
@@ -102,28 +105,34 @@ export default async function SuggestionDetailPage({
   // the current reviewer's id so the audit trail can say "you" for
   // their own decisions. RLS on auth.users blocks cross-user joins;
   // Phase 8 introduces a proper profiles table.
-  const [suggestionResult, feedbackResult, taxonomyResult, userResult] =
-    await Promise.all([
-      supabase
-        .from("suggestions")
-        .select(
-          "id,run_id,title,rationale,category,proposed_subcategory,target_audience,duration_days,duration_hours_min,duration_hours_max,delivery_format,suggested_price_usd,price_basis,references,status,created_at,content_outline,package_fit,lab_requirements,edstellar_pitch",
-        )
-        .eq("id", id)
-        .maybeSingle(),
-      supabase
-        .from("feedback")
-        .select(
-          "id,suggestion_id,decision,reason_tags,reason_text,reviewer_id,created_at",
-        )
-        .eq("suggestion_id", id)
-        .order("created_at", { ascending: false }),
-      supabase
-        .from("rejection_taxonomy")
-        .select("key,label,description,rare")
-        .order("sort_order"),
-      supabase.auth.getUser(),
-    ]);
+  const [
+    suggestionResult,
+    feedbackResult,
+    taxonomyResult,
+    userResult,
+    categoriesResult,
+  ] = await Promise.all([
+    supabase
+      .from("suggestions")
+      .select(
+        "id,run_id,title,rationale,category,proposed_subcategory,target_audience,duration_days,duration_hours_min,duration_hours_max,delivery_format,suggested_price_usd,price_basis,references,status,created_at,content_outline,package_fit,lab_requirements,edstellar_pitch",
+      )
+      .eq("id", id)
+      .maybeSingle(),
+    supabase
+      .from("feedback")
+      .select(
+        "id,suggestion_id,decision,reason_tags,reason_text,reviewer_id,created_at",
+      )
+      .eq("suggestion_id", id)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("rejection_taxonomy")
+      .select("key,label,description,rare")
+      .order("sort_order"),
+    supabase.auth.getUser(),
+    supabase.from("categories_with_counts").select("name,course_count"),
+  ]);
 
   if (suggestionResult.error) {
     console.error(
@@ -153,6 +162,28 @@ export default async function SuggestionDetailPage({
   }));
   const currentUserId = userResult.data.user?.id ?? null;
 
+  // ── Category-fit context ────────────────────────────────────────
+  // Look up this suggestion's category in the curated table + count
+  // OTHER pending suggestions sharing it. The same `CategoryFit`
+  // block the queue uses then renders here.
+  const categoriesRows = (categoriesResult.data ?? []) as {
+    name: string;
+    course_count: number;
+  }[];
+  const categoryRow = categoriesRows.find(
+    (c) => c.name === suggestion.category,
+  );
+  const { count: pendingInCategory } = await supabase
+    .from("suggestions")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "pending_review")
+    .eq("category", suggestion.category);
+  const categoryContext: CategoryContext = {
+    exists: !!categoryRow,
+    existingCourseCount: categoryRow?.course_count ?? 0,
+    pendingInCategory: pendingInCategory ?? 0,
+  };
+
   const isPending = suggestion.status === "pending_review";
 
   return (
@@ -172,7 +203,10 @@ export default async function SuggestionDetailPage({
       />
 
       <div className="flex-1 space-y-6 px-8 py-8">
-        <SuggestionCard suggestion={suggestion} />
+        <SuggestionCard
+          suggestion={suggestion}
+          categoryContext={categoryContext}
+        />
 
         {isPending ? (
           <DecisionPanel suggestion={suggestion} tags={tags} />
