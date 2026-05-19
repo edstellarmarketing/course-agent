@@ -52,6 +52,16 @@ class EngineSettings(BaseSettings):
         min_length=20,
         description="Gateway key for routing to DeepSeek / Claude / GPT / Gemini.",
     )
+    # Optional — only required when RESEARCH_LLM_PROVIDER=anthropic.
+    # When set, the research.candidates call goes directly to
+    # Anthropic Messages API with the `web_search_20250305` tool
+    # enabled so the model produces grounded, cited URLs instead of
+    # the LLM-hallucinated ones Rule 7 has to throw away.
+    anthropic_api_key: str | None = Field(
+        default=None,
+        alias="ANTHROPIC_API_KEY",
+        description="Direct Anthropic API key (not via OpenRouter).",
+    )
     voyage_api_key: str = Field(
         ...,
         alias="VOYAGE_API_KEY",
@@ -70,6 +80,40 @@ class EngineSettings(BaseSettings):
     langfuse_secret_key: str | None = Field(default=None, alias="LANGFUSE_SECRET_KEY")
     langfuse_host: HttpUrl | None = Field(default=None, alias="LANGFUSE_HOST")
     sentry_dsn: str | None = Field(default=None, alias="SENTRY_DSN")
+
+    # ── Research provider toggle ─────────────────────────────────────
+    # "openrouter" (default) routes the research.candidates call
+    # through OpenRouter — cheapest, no web search. "anthropic"
+    # routes it directly to Anthropic with the web_search tool
+    # enabled — grounded references at a noticeable cost premium
+    # (~$10 / 1k searches on top of token cost). All OTHER LLM calls
+    # (rule_07 ref-verify, rule_10 cert-judge, etc.) stay on
+    # OpenRouter regardless — only research benefits enough from
+    # web search to justify the upgrade.
+    research_llm_provider: str = Field(
+        default="openrouter",
+        alias="RESEARCH_LLM_PROVIDER",
+        description="Which provider serves the research.candidates call.",
+    )
+    # Model used by the Anthropic provider. Sonnet 4.6 is the cost-
+    # quality sweet spot for structured research output + web_search.
+    # Override to claude-opus-4-7 if you want best-in-class reasoning
+    # at ~5x cost.
+    anthropic_research_model: str = Field(
+        default="claude-sonnet-4-6",
+        alias="ANTHROPIC_RESEARCH_MODEL",
+        description="Model ID for the Anthropic research call.",
+    )
+
+    @field_validator("research_llm_provider", mode="after")
+    @classmethod
+    def _normalize_provider(cls, v: str) -> str:
+        v = v.strip().lower()
+        if v not in {"openrouter", "anthropic"}:
+            raise ValueError(
+                f"RESEARCH_LLM_PROVIDER must be 'openrouter' or 'anthropic', got {v!r}",
+            )
+        return v
 
     # ── Phase 6 — agent cost ceiling ──────────────────────────────────
     # Per-run circuit breaker. If the RunCostLedger total crosses this

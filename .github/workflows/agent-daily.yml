@@ -47,6 +47,16 @@ jobs:
           VOYAGE_API_KEY: ${{ secrets.VOYAGE_API_KEY }}
           SERPER_API_KEY: ${{ secrets.SERPER_API_KEY }}
 
+          # Optional — direct Anthropic key used by the research node
+          # when RESEARCH_LLM_PROVIDER=anthropic so it can call
+          # web_search and ground candidate references against real
+          # pages. Unset means the agent stays on the OpenRouter path
+          # (cheaper, no web search). The two go together — if you
+          # set one, set the other.
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          RESEARCH_LLM_PROVIDER: ${{ vars.RESEARCH_LLM_PROVIDER }}
+          ANTHROPIC_RESEARCH_MODEL: ${{ vars.ANTHROPIC_RESEARCH_MODEL }}
+
           # Observability (Phase 9)
           LANGFUSE_PUBLIC_KEY: ${{ secrets.LANGFUSE_PUBLIC_KEY }}
           LANGFUSE_SECRET_KEY: ${{ secrets.LANGFUSE_SECRET_KEY }}

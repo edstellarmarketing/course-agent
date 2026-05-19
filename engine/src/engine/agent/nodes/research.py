@@ -37,6 +37,8 @@ from engine.agent.candidate import RawCandidate, RawCandidateList
 from engine.agent.few_shot import load_few_shot_block
 from engine.agent.guardrails import addendum_for_category
 from engine.agent.state import AgentState
+from engine.config import settings
+from engine.llm.anthropic import AnthropicClient
 from engine.llm.openrouter import OpenRouterClient, RunCostLedger
 from engine.llm.serper import search as serper_search
 
@@ -203,7 +205,23 @@ def research_one_category(
     # and producing zero validatable candidates. 8192 is the upper
     # bound for the default research model (deepseek-chat-v3.1) and
     # most OpenRouter routed alternatives.
-    completion = or_client.complete(
+    #
+    # Provider toggle: when RESEARCH_LLM_PROVIDER=anthropic the call
+    # goes direct to Anthropic with web_search enabled — grounded
+    # references at a noticeable cost premium. Every OTHER LLM call
+    # in this run (rule_07 ref-verify, rule_10 cert-judge, etc.)
+    # stays on OpenRouter regardless; only research benefits enough
+    # from web search to justify the upgrade.
+    cfg = settings()
+    research_client: AnthropicClient | OpenRouterClient
+    if cfg.research_llm_provider == "anthropic":
+        research_client = AnthropicClient(
+            default_model=cfg.anthropic_research_model,
+            ledger=ledger,
+        )
+    else:
+        research_client = or_client
+    completion = research_client.complete(
         messages,
         max_tokens=8192,
         temperature=0.4,

@@ -21,6 +21,11 @@ dependencies = [
     "langfuse>=4.6,<5",   # Phase 9 — pinned to the API we depend on
     # Phase 9 — observability
     "sentry-sdk[httpx]>=2.20",
+    # Optional: when RESEARCH_LLM_PROVIDER=anthropic, the research
+    # node calls Anthropic Messages API directly so it can enable the
+    # `web_search_20250305` server-side tool. Falls back to
+    # OpenRouter for every other LLM call (cheaper, no web search).
+    "anthropic>=0.40",
 ]
 
 [project.scripts]
