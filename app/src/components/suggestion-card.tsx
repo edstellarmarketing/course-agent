@@ -13,6 +13,13 @@ import { cn } from "@/lib/utils";
  * "N − 1 other suggestions share this category" so the count is
  * intuitive even when there's only the one card.
  */
+export interface RelatedCategorySuggestion {
+  name: string;
+  courseCount: number;
+  /** Tokens shared with suggestion.category — surfaced as small chips. */
+  matchedTokens: string[];
+}
+
 export interface CategoryContext {
   /** True when suggestion.category is in `course-agent.categories`. */
   exists: boolean;
@@ -20,6 +27,13 @@ export interface CategoryContext {
   existingCourseCount: number;
   /** Pending suggestions (incl. this one) using the same category. */
   pendingInCategory: number;
+  /**
+   * Existing categories that look related (peer / vertical / parent)
+   * based on token overlap with suggestion.category. Reviewer can
+   * file the course under one of these instead of creating a new one.
+   * Empty array when nothing matched above the score threshold.
+   */
+  relatedCategories?: RelatedCategorySuggestion[];
 }
 
 interface SuggestionCardProps {
@@ -657,9 +671,15 @@ function CategoryFit({
   category: string;
   context: CategoryContext;
 }) {
-  const { exists, existingCourseCount, pendingInCategory } = context;
+  const {
+    exists,
+    existingCourseCount,
+    pendingInCategory,
+    relatedCategories,
+  } = context;
   const otherPending = Math.max(0, pendingInCategory - 1);
   const newCategoryUrl = `/categories?suggest=${encodeURIComponent(category)}`;
+  const related = relatedCategories ?? [];
 
   return (
     <div className="mt-4 border-t border-gray-100 pt-3">
@@ -720,6 +740,66 @@ function CategoryFit({
           )}
         </div>
       )}
+
+      {related.length > 0 && (
+        <RelatedCategoriesBlock
+          related={related}
+          isNewCategory={!exists}
+        />
+      )}
+    </div>
+  );
+}
+
+function RelatedCategoriesBlock({
+  related,
+  isNewCategory,
+}: {
+  related: RelatedCategorySuggestion[];
+  isNewCategory: boolean;
+}) {
+  return (
+    <div className="mt-3 rounded-md border border-gray-100 bg-white px-2.5 py-2">
+      <div className="font-display text-[10px] font-semibold uppercase tracking-widest text-gray-500">
+        {isNewCategory
+          ? "Related existing categories"
+          : "Other related categories"}
+      </div>
+      <div className="mt-0.5 text-[11px] text-gray-500">
+        {isNewCategory
+          ? "Consider filing under one of these instead of creating a new category."
+          : "Peer categories that share keywords — useful if you'd rather recategorise."}
+      </div>
+      <ul className="mt-2 space-y-1.5">
+        {related.map((r) => (
+          <li key={r.name} className="text-sm">
+            <div className="flex items-center justify-between gap-2">
+              <Link
+                href={`/inventory?category=${encodeURIComponent(r.name)}`}
+                className="truncate font-medium text-navy-deep hover:text-navy"
+                title={`Browse "${r.name}" in the inventory`}
+              >
+                {r.name}
+              </Link>
+              <span className="font-mono text-[11px] text-gray-500 whitespace-nowrap">
+                {r.courseCount} course{r.courseCount === 1 ? "" : "s"}
+              </span>
+            </div>
+            {r.matchedTokens.length > 0 && (
+              <div className="mt-0.5 flex flex-wrap gap-1">
+                {r.matchedTokens.map((tok) => (
+                  <span
+                    key={tok}
+                    className="rounded-full bg-navy-soft px-1.5 py-0.5 font-display text-[9px] font-semibold uppercase tracking-wider text-navy-deep"
+                  >
+                    {tok}
+                  </span>
+                ))}
+              </div>
+            )}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

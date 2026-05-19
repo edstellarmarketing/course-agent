@@ -2,6 +2,7 @@ import { PageHeader } from "@/components/page-header";
 import type { CategoryContext } from "@/components/suggestion-card";
 import { SuggestionQueue } from "@/components/suggestion-queue";
 import { getCurrentReviewer } from "@/lib/auth/current-user";
+import { findRelatedCategories } from "@/lib/category-similarity";
 import { createSessionClient } from "@/lib/supabase/server-with-session";
 import type {
   ContentOutlineModule,
@@ -170,12 +171,17 @@ export default async function SuggestionsTodayPage() {
   // pending cards share it. The card uses this to render either
   // "filed under existing category (N courses)" or "new category —
   // M others share this, consider creating it".
+  const categoryRows = (categoriesResult.data ?? []) as {
+    name: string;
+    course_count: number;
+  }[];
   const existingCategoryCounts = new Map<string, number>(
-    ((categoriesResult.data ?? []) as {
-      name: string;
-      course_count: number;
-    }[]).map((c) => [c.name, c.course_count]),
+    categoryRows.map((c) => [c.name, c.course_count]),
   );
+  const relatedCandidates = categoryRows.map((c) => ({
+    name: c.name,
+    courseCount: c.course_count,
+  }));
   const pendingByCategory = new Map<string, number>();
   for (const s of pending) {
     pendingByCategory.set(
@@ -189,6 +195,9 @@ export default async function SuggestionsTodayPage() {
       exists: existingCategoryCounts.has(category),
       existingCourseCount: existingCategoryCounts.get(category) ?? 0,
       pendingInCategory: pendingCount,
+      relatedCategories: findRelatedCategories(category, relatedCandidates, {
+        limit: 3,
+      }),
     };
   }
 

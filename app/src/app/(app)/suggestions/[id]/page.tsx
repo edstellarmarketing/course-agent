@@ -7,6 +7,7 @@ import {
   SuggestionCard,
   type CategoryContext,
 } from "@/components/suggestion-card";
+import { findRelatedCategories } from "@/lib/category-similarity";
 import { createSessionClient } from "@/lib/supabase/server-with-session";
 import type {
   FeedbackDecision,
@@ -182,6 +183,14 @@ export default async function SuggestionDetailPage({
     exists: !!categoryRow,
     existingCourseCount: categoryRow?.course_count ?? 0,
     pendingInCategory: pendingInCategory ?? 0,
+    relatedCategories: findRelatedCategories(
+      suggestion.category,
+      categoriesRows.map((c) => ({
+        name: c.name,
+        courseCount: c.course_count,
+      })),
+      { limit: 3 },
+    ),
   };
 
   const isPending = suggestion.status === "pending_review";
