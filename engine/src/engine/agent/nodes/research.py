@@ -271,9 +271,15 @@ def research_one_category(
         )
     else:
         research_client = or_client
+    # Anthropic + web_search produces visibly longer responses (the
+    # model explains its citations more after seeing real sources)
+    # and Claude Sonnet 4.6 supports up to 64k output tokens. Cap
+    # there so the JSON has slack; OpenRouter's 8192 fits its
+    # cheaper-model envelope and that's what we keep for it.
+    research_max_tokens = 16384 if use_anthropic else 8192
     completion = research_client.complete(
         messages,
-        max_tokens=8192,
+        max_tokens=research_max_tokens,
         temperature=0.4,
         span="research.candidates",
     )

@@ -160,8 +160,22 @@ class AnthropicClient:
             # folds results into the model's context before the final
             # text turn. We don't have to handle a tool_use → tool_result
             # loop; just enable the tool and read the final text.
+            #
+            # `max_uses=3` caps the searches per call. Without it the
+            # model issues 5-10 searches, each fetched page adds 20-30k
+            # tokens to the next-turn input, and a typical research call
+            # blows through 200k+ input tokens. That kills Tier 1 / 2
+            # accounts on TPM limits, and overflows our max_tokens cap
+            # on the output side because the model writes longer
+            # explanations after seeing more sources. 3 is enough to
+            # ground each candidate against 1 source if the model is
+            # focused.
             kwargs["tools"] = [
-                {"type": "web_search_20250305", "name": "web_search"}
+                {
+                    "type": "web_search_20250305",
+                    "name": "web_search",
+                    "max_uses": 3,
+                }
             ]
 
         with maybe_langfuse_span(span, model=used_model):
