@@ -80,11 +80,12 @@ class RuleContext:
     or_client: Any  # OpenRouterClient — used by rule 10c, rule 7
     ledger: Any  # RunCostLedger — for cost-aware fan-out
     embeddings_cache: dict[str, Any] = None  # type: ignore[assignment]
-    # Cheap-tier yes/no judge for rule 10c + the ref-verifier (rule 7).
-    # Phase 8 Step 9c — confirmed `anthropic/claude-haiku-4-5` slug
-    # on OpenRouter (no date suffix). ~$0.000034 per yes/no call,
-    # roughly 5× cheaper than DeepSeek for the same task.
-    cert_judge_model: str = "anthropic/claude-haiku-4-5"
+    # §3.6 Rule 10c — cheap yes/no judge for "does this title name a
+    # specific certification or governing body?" Also used by the
+    # rule_07 ref-verifier. DeepSeek Chat V3.1 is the configured
+    # production default (mirrors the /settings page's "Rule 10
+    # judge" row); ~$0.000050 per call, no per-call rate limits.
+    cert_judge_model: str = "deepseek/deepseek-chat-v3.1"
 
     def __post_init__(self) -> None:
         if self.embeddings_cache is None:

@@ -116,7 +116,12 @@ def _cmd_run(args: argparse.Namespace) -> int:
 
 
 # ── Subcommand: research ─────────────────────────────────────────
-DEFAULT_RESEARCH_MODEL = "deepseek/deepseek-chat-v3.1"
+# §3.5 Research Agent — heavy reasoning step that proposes raw
+# candidates per targeted category. V3.2-exp gets longer context
+# and better instruction-following than chat-v3.1 at similar cost
+# through OpenRouter; mirrors the /settings page's "Research model"
+# row.
+DEFAULT_RESEARCH_MODEL = "deepseek/deepseek-v3.2-exp"
 
 
 def _cmd_research(args: argparse.Namespace) -> int:

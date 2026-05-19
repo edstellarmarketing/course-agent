@@ -28,7 +28,9 @@ from engine.supabase import supabase as get_supabase
 
 LOG_FORMAT = "%(asctime)sZ %(levelname)s %(message)s"
 LOG_DATEFMT = "%Y-%m-%dT%H:%M:%S"
-DEFAULT_MODEL_SLUG = "deepseek/deepseek-chat-v3.1"
+# Tracks DEFAULT_RESEARCH_MODEL in cli.py so newly-seeded prompt
+# rows attribute themselves to the model actually running them.
+DEFAULT_MODEL_SLUG = "deepseek/deepseek-v3.2-exp"
 
 
 def _load_prompt_text() -> str:

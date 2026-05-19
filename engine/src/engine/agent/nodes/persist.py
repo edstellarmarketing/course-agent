@@ -226,7 +226,10 @@ def run(state: AgentState) -> AgentState:
     targeted = state.get("targeted_categories") or []
     candidates_produced = len(state.get("raw_candidates") or [])
 
-    model_used = "deepseek/deepseek-chat-v3.1" if or_client is None else or_client.default_model
+    # Fallback only fires in tests / partial state paths where the
+    # OpenRouter client never got attached; matches the research
+    # default in cli.py so the audit trail stays consistent.
+    model_used = "deepseek/deepseek-v3.2-exp" if or_client is None else or_client.default_model
 
     log.info(
         "node=persist final=%d dry_run=%s targeted=%s",

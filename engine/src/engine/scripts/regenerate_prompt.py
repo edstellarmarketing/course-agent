@@ -47,11 +47,13 @@ log = logging.getLogger("regenerate_prompt")
 # Window over which we summarize reviewer signal for the rewrite.
 REJECTION_WINDOW_DAYS = 7
 
-# Model used for the rewrite. DeepSeek's chat model is known-good
-# (Phase 2 smoke verifies the slug) and cheap enough for a manual
-# admin trigger. Phase 9 may swap for Sonnet/GPT-4o once their
-# OpenRouter slugs are confirmed in this account.
-REWRITE_MODEL = "deepseek/deepseek-chat-v3.1"
+# §3.8d Prompt regenerator — runs weekly to read rejection patterns
+# and propose an improved system prompt. Outputs land in
+# prompt_versions as candidates. Claude Opus is the frontier-tier
+# choice mirroring the /settings page; the rewrite happens once a
+# week at most, so the ~5× cost premium over Sonnet is acceptable
+# for the best-quality structural rewrites.
+REWRITE_MODEL = "anthropic/claude-opus-4-7"
 
 
 def _fetch_active_prompt() -> tuple[str, int, str]:
