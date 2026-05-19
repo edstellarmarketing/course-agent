@@ -117,7 +117,7 @@ export function SuggestionCard({
   className,
   categoryContext,
 }: SuggestionCardProps) {
-  const closest = suggestion.closestExistingCourse;
+  const closestList = suggestion.closestExistingCourses ?? [];
   const outline = suggestion.contentOutline ?? [];
   const packageFit = suggestion.packageFit;
   const labs = suggestion.labRequirements;
@@ -379,31 +379,48 @@ export function SuggestionCard({
 
         <aside className="rounded-md border border-gray-100 bg-off-white p-4">
           <div className="mb-2 font-display text-[10px] font-semibold uppercase tracking-widest text-orange">
-            Closest existing course
+            Closest existing {closestList.length === 1 ? "course" : "courses"}
           </div>
-          {closest ? (
+          {closestList.length > 0 ? (
             <>
-              <a
-                href={closest.course.link ?? "#"}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block text-sm font-medium text-navy-deep hover:text-navy"
-              >
-                {closest.course.name}
-              </a>
-              <div className="mt-0.5 text-[11px] text-gray-500">
-                {closest.course.category}
-                {closest.course.subcategory && ` · ${closest.course.subcategory}`}
-              </div>
-              <div className="mt-3 flex items-center gap-2">
-                <SimilarityBar value={closest.similarity} />
-                <span className="font-mono text-xs font-semibold text-navy-deep">
-                  {Math.round(closest.similarity * 100)}%
-                </span>
-              </div>
-              <p className="mt-2 text-[11px] leading-relaxed text-gray-500">
-                Cosine similarity vs <code className="rounded bg-gray-100 px-1 font-mono text-[10px]">courses.embedding</code>.
-                Anything &gt; 85% would have been blocked by Rule 2.
+              <ul className="space-y-3">
+                {closestList.map((closest, idx) => (
+                  <li
+                    key={closest.course.id}
+                    className={
+                      idx === 0
+                        ? ""
+                        : "border-t border-gray-100 pt-3"
+                    }
+                  >
+                    <a
+                      href={closest.course.link ?? "#"}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block text-sm font-medium text-navy-deep hover:text-navy"
+                    >
+                      {closest.course.name}
+                    </a>
+                    <div className="mt-0.5 text-[11px] text-gray-500">
+                      {closest.course.category}
+                      {closest.course.subcategory &&
+                        ` · ${closest.course.subcategory}`}
+                    </div>
+                    <div className="mt-2 flex items-center gap-2">
+                      <SimilarityBar value={closest.similarity} />
+                      <span className="font-mono text-xs font-semibold text-navy-deep">
+                        {Math.round(closest.similarity * 100)}%
+                      </span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-3 text-[11px] leading-relaxed text-gray-500">
+                Cosine similarity vs{" "}
+                <code className="rounded bg-gray-100 px-1 font-mono text-[10px]">
+                  courses.embedding
+                </code>
+                . Anything &gt; 85% would have been blocked by Rule 2.
               </p>
             </>
           ) : (

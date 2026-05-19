@@ -73,7 +73,7 @@ interface RejectionTaxonomyRow {
 
 function rowToSuggestion(
   row: SuggestionRow,
-  closest: ClosestCourseMatch | null,
+  closest: ClosestCourseMatch[],
 ): Suggestion {
   return {
     id: row.id,
@@ -96,7 +96,7 @@ function rowToSuggestion(
     references: row.references ?? [],
     status: row.status,
     createdAt: row.created_at,
-    closestExistingCourse: closest,
+    closestExistingCourses: closest,
   };
 }
 
@@ -156,14 +156,14 @@ export default async function SuggestionDetailPage({
   const suggestionRow = suggestionResult.data as SuggestionRow | null;
   if (!suggestionRow) notFound();
 
-  // Closest existing course via pgvector cosine (RPC declared in
-  // migration 0015). Returns no row if the suggestion's embedding is
-  // NULL or every course in the catalogue lacks an embedding — card
-  // then falls back to "No close match in the catalogue".
-  let closest: ClosestCourseMatch | null = null;
+  // Top-N closest existing courses via pgvector cosine (RPC declared
+  // in migration 0016). Empty if the suggestion's embedding is NULL
+  // or every course in the catalogue lacks one — card then falls back
+  // to "No close match in the catalogue".
+  const closest: ClosestCourseMatch[] = [];
   const { data: closestData, error: closestErr } = await supabase.rpc(
     "closest_courses_for_suggestions",
-    { suggestion_ids: [suggestionRow.id] },
+    { suggestion_ids: [suggestionRow.id], match_limit: 3 },
   );
   if (closestErr) {
     console.error(
@@ -171,30 +171,27 @@ export default async function SuggestionDetailPage({
       closestErr,
     );
   }
-  const closestRow = (closestData ?? [])[0] as
-    | {
-        course_id: string;
-        course_num: number | null;
-        course_name: string;
-        course_category: string;
-        course_subcategory: string | null;
-        course_link: string | null;
-        similarity: number;
-      }
-    | undefined;
-  if (closestRow) {
+  for (const r of (closestData ?? []) as {
+    course_id: string;
+    course_num: number | null;
+    course_name: string;
+    course_category: string;
+    course_subcategory: string | null;
+    course_link: string | null;
+    similarity: number;
+  }[]) {
     const course: Course = {
-      id: closestRow.course_id,
-      num: closestRow.course_num ?? 0,
-      name: closestRow.course_name,
-      category: closestRow.course_category,
-      subcategory: closestRow.course_subcategory,
-      link: closestRow.course_link,
+      id: r.course_id,
+      num: r.course_num ?? 0,
+      name: r.course_name,
+      category: r.course_category,
+      subcategory: r.course_subcategory,
+      link: r.course_link,
       lastSeenAt: "",
       createdAt: "",
       updatedAt: "",
     };
-    closest = { course, similarity: closestRow.similarity };
+    closest.push({ course, similarity: r.similarity });
   }
 
   const suggestion = rowToSuggestion(suggestionRow, closest);

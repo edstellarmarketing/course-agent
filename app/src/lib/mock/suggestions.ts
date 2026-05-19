@@ -34,7 +34,7 @@ export const mockTodaysSuggestions: Suggestion[] = [
     ],
     status: "pending_review",
     createdAt: ts("2026-05-16"),
-    closestExistingCourse: { course: mockCourses[8], similarity: 0.62 },
+    closestExistingCourses: [{ course: mockCourses[8], similarity: 0.62 }],
   },
   {
     id: "sg-2026-05-16-002",
@@ -57,7 +57,7 @@ export const mockTodaysSuggestions: Suggestion[] = [
     ],
     status: "pending_review",
     createdAt: ts("2026-05-16"),
-    closestExistingCourse: { course: mockCourses[3], similarity: 0.71 },
+    closestExistingCourses: [{ course: mockCourses[3], similarity: 0.71 }],
   },
   {
     id: "sg-2026-05-16-003",
@@ -80,7 +80,7 @@ export const mockTodaysSuggestions: Suggestion[] = [
     ],
     status: "pending_review",
     createdAt: ts("2026-05-16"),
-    closestExistingCourse: { course: mockCourses[4], similarity: 0.55 },
+    closestExistingCourses: [{ course: mockCourses[4], similarity: 0.55 }],
   },
   {
     id: "sg-2026-05-16-004",
@@ -103,7 +103,7 @@ export const mockTodaysSuggestions: Suggestion[] = [
     ],
     status: "pending_review",
     createdAt: ts("2026-05-16"),
-    closestExistingCourse: { course: mockCourses[6], similarity: 0.68 },
+    closestExistingCourses: [{ course: mockCourses[6], similarity: 0.68 }],
   },
   {
     id: "sg-2026-05-16-005",
@@ -126,7 +126,7 @@ export const mockTodaysSuggestions: Suggestion[] = [
     ],
     status: "pending_review",
     createdAt: ts("2026-05-16"),
-    closestExistingCourse: { course: mockCourses[13], similarity: 0.64 },
+    closestExistingCourses: [{ course: mockCourses[13], similarity: 0.64 }],
   },
   {
     id: "sg-2026-05-16-006",
@@ -149,7 +149,7 @@ export const mockTodaysSuggestions: Suggestion[] = [
     ],
     status: "pending_review",
     createdAt: ts("2026-05-16"),
-    closestExistingCourse: { course: mockCourses[16], similarity: 0.73 },
+    closestExistingCourses: [{ course: mockCourses[16], similarity: 0.73 }],
   },
 ];
 

@@ -69,7 +69,7 @@ interface RejectionTaxonomyRow {
 
 function rowToSuggestion(
   row: SuggestionRow,
-  closest: ClosestCourseMatch | null,
+  closest: ClosestCourseMatch[],
 ): Suggestion {
   return {
     id: row.id,
@@ -92,7 +92,7 @@ function rowToSuggestion(
     references: row.references ?? [],
     status: row.status,
     createdAt: row.created_at,
-    closestExistingCourse: closest,
+    closestExistingCourses: closest,
   };
 }
 
@@ -184,16 +184,16 @@ export default async function SuggestionsTodayPage() {
 
   const queue = (queueResult.data ?? []) as SuggestionRow[];
 
-  // ── Closest existing course (cosine via pgvector) ───────────────
-  // One RPC call gets the top-1 course for every suggestion in the
-  // queue. Suggestions whose embedding is NULL (older runs) or
-  // catalogues with no embedded courses just won't have an entry —
-  // the card falls back to "No close match in the catalogue".
-  const closestMap = new Map<string, ClosestCourseMatch>();
+  // ── Closest existing courses (cosine via pgvector) ──────────────
+  // One RPC call returns the top-N courses for every suggestion in
+  // the queue (default match_limit=3). Suggestions whose embedding is
+  // NULL (older runs) or catalogues with no embedded courses just
+  // won't have entries — the card falls back to "No close match".
+  const closestMap = new Map<string, ClosestCourseMatch[]>();
   if (queue.length > 0) {
     const { data: closestData, error: closestErr } = await supabase.rpc(
       "closest_courses_for_suggestions",
-      { suggestion_ids: queue.map((r) => r.id) },
+      { suggestion_ids: queue.map((r) => r.id), match_limit: 3 },
     );
     if (closestErr) {
       console.error(
@@ -215,12 +215,16 @@ export default async function SuggestionsTodayPage() {
         createdAt: "",
         updatedAt: "",
       };
-      closestMap.set(r.suggestion_id, { course, similarity: r.similarity });
+      const list = closestMap.get(r.suggestion_id) ?? [];
+      list.push({ course, similarity: r.similarity });
+      closestMap.set(r.suggestion_id, list);
     }
+    // RPC returns rows in similarity order per suggestion (LATERAL
+    // already sorts), so no resort needed.
   }
 
   const pending: Suggestion[] = queue.map((row) =>
-    rowToSuggestion(row, closestMap.get(row.id) ?? null),
+    rowToSuggestion(row, closestMap.get(row.id) ?? []),
   );
 
   // ── Category-fit context ────────────────────────────────────────

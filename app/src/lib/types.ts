@@ -141,8 +141,12 @@ export interface Suggestion {
   references: SuggestionReference[];
   status: SuggestionStatus;
   createdAt: IsoTimestamp;
-  /** Hydrated client-side for the side-rail diff on /suggestions/today. */
-  closestExistingCourse?: ClosestCourseMatch | null;
+  /**
+   * Top-N closest existing courses by cosine similarity (descending).
+   * Empty array → no comparable course in the catalogue. Hydrated by
+   * the page from `closest_courses_for_suggestions` (migration 0016).
+   */
+  closestExistingCourses?: ClosestCourseMatch[];
 }
 
 /** Result of the cosine-similarity lookup against `courses.embedding`. */
