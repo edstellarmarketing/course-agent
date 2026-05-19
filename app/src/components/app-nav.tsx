@@ -42,6 +42,7 @@ const sections: NavSection[] = [
   {
     heading: "Admin",
     links: [
+      { href: "/users", label: "Users", adminOnly: true },
       { href: "/learning", label: "Learning", adminOnly: true },
       { href: "/email-settings", label: "Email Settings", adminOnly: true },
       { href: "/settings", label: "Settings", adminOnly: true },
