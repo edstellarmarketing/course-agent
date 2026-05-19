@@ -14,6 +14,7 @@ built. This runbook describes how to keep it running.
 - [Manually trigger an agent run](#manually-trigger-an-agent-run)
 - [Roll back a prompt version](#roll-back-a-prompt-version)
 - [Approval rate collapsed — what now?](#approval-rate-collapsed--what-now)
+- [Quote verification rate (research-quality signal)](#quote-verification-rate-research-quality-signal)
 - [Add a new rejection tag](#add-a-new-rejection-tag)
 - [Update the Rule 10 certification blocklist](#update-the-rule-10-certification-blocklist)
 - [Add a digest recipient](#add-a-digest-recipient)
@@ -144,6 +145,93 @@ the trend on `/learning` dropping ≥10pp week-over-week.
 - **Data anomaly** (one reviewer rejecting everything, off-day) →
   wait for the next week. The 7d-over-7d window is intentionally
   noisy at small sample sizes.
+
+---
+
+## Quote verification rate (research-quality signal)
+
+Each surviving reference carries a `quote_status` field stamped by
+Rule 7 (`engine/src/engine/rules/rule_07_references.py`). It records
+whether the agent's verbatim quote actually appeared on the live
+page. This is the signal you use to decide whether the single-call
+research path is "good enough" or whether the multi-agent
+orchestrator upgrade is worth building.
+
+Possible statuses, per reference:
+
+| status | meaning |
+|---|---|
+| `verified` | page fetched, agent's quote string-matched the page |
+| `unverified` | page fetched, agent's quote did NOT match (the quote field is also nulled out before persistence) |
+| `absent` | page fetched, agent provided no quote (legitimate — e.g. a provider course-listing where there's nothing to quote) |
+| `page_unfetched` | fetch failed (403, JS-rendered, timeout) — neither prove nor disprove |
+| _(missing / null)_ | pre-deployment rows from before this field shipped |
+
+### Headline number: how often does the agent's quote verify?
+
+In Supabase Studio → SQL Editor:
+
+```sql
+select
+  ref->>'quote_status' as status,
+  count(*) as count,
+  round(100.0 * count(*) / sum(count(*)) over (), 1) as pct
+from "course-agent".suggestions s,
+  jsonb_array_elements(s.references) ref
+where s.created_at > now() - interval '30 days'
+group by 1
+order by count desc;
+```
+
+Read it as: of all references the agent emitted in the last 30
+days, what fraction got a verified quote vs got nulled.
+
+### Decision rule
+
+Look at the ratio of `verified` to `verified + unverified` — that's
+the agent's success rate when it _tries_ to quote. `absent` and
+`page_unfetched` aren't failures and should be excluded from the
+denominator.
+
+- **≥ 80%** — the single-call path is producing trustworthy
+  evidence. Don't build the orchestrator yet; the cost won't
+  earn its keep.
+- **60–80%** — the agent quotes confidently but hallucinates
+  often enough to hurt reviewer trust. Tighten the quote rule in
+  `engine/src/engine/prompts/research_system.txt` (e.g. raise the
+  confidence threshold, demand a section heading too) and re-check
+  in a week. If the next week doesn't improve, the orchestrator
+  upgrade is justified.
+- **< 60%** — quote hallucination is the dominant failure mode.
+  Build the orchestrator (planner / specialist / synthesizer)
+  behind a `RESEARCH_MODE=orchestrated` env flag.
+
+### Per-category drill-down
+
+When the headline number is borderline, see which categories the
+agent struggles with:
+
+```sql
+select
+  s.category,
+  count(*) filter (where ref->>'quote_status' = 'verified') as verified,
+  count(*) filter (where ref->>'quote_status' = 'unverified') as unverified,
+  round(
+    100.0
+    * count(*) filter (where ref->>'quote_status' = 'verified')
+    / nullif(count(*) filter (where ref->>'quote_status' in ('verified','unverified')), 0),
+    1
+  ) as verify_pct
+from "course-agent".suggestions s,
+  jsonb_array_elements(s.references) ref
+where s.created_at > now() - interval '30 days'
+group by s.category
+order by verify_pct nulls last;
+```
+
+If one or two categories drag the headline number down, the fix
+might be category-specific (Phase 8 guardrails JSON) rather than a
+research-engine rewrite.
 
 ---
 

@@ -30,6 +30,16 @@ class CandidateReference(BaseModel):
     # to omit this field when not high-confidence — a missing quote is
     # better than a fabricated one. UI displays it under each reference.
     quote: str | None = None
+    # Observability stamp written by rule_07_references for each
+    # surviving ref. Never set by the LLM — set by the rule engine
+    # so we can measure how often the agent's verbatim quotes verify
+    # against the live page across runs. One of:
+    #   verified       — page fetched + quote string-matched
+    #   unverified     — page fetched + quote did NOT match (quote also nulled)
+    #   absent         — page fetched + agent provided no quote (e.g. listing)
+    #   page_unfetched — fetch failed/403/timeout, quote (if any) untouched
+    # 404/410 refs are dropped upstream and never carry this field.
+    quote_status: str | None = None
 
 
 class OutlineModule(BaseModel):
