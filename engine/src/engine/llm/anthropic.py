@@ -42,7 +42,9 @@ from engine.llm.openrouter import Completion, RunCostLedger
 
 log = logging.getLogger(__name__)
 
-DEFAULT_TIMEOUT_S = 120.0  # web_search round-trips can be slow
+DEFAULT_TIMEOUT_S = 300.0  # web_search round-trips do real HTTP fetches +
+                           # several model turns; 120s consistently timed
+                           # out on Cybersecurity-class prompts.
 MAX_ATTEMPTS = 3
 BACKOFF_SECONDS = (1.0, 2.0, 4.0)
 
@@ -92,6 +94,14 @@ class AnthropicClient:
         self._client = anthropic.Anthropic(
             api_key=self._cfg.anthropic_api_key,
             timeout=timeout_s,
+            # The SDK retries by default (max_retries=2) on connection
+            # errors and 429/5xx. Combined with our own MAX_ATTEMPTS=3
+            # loop that meant up to 9 attempts — and on slow
+            # web_search calls the SDK was racing us, eating two full
+            # timeout windows before our wrapper got control. Disable
+            # SDK-level retries so the wrapper is the single source of
+            # backoff truth.
+            max_retries=0,
         )
 
     def close(self) -> None:
@@ -221,13 +231,15 @@ class AnthropicClient:
                 return self._client.messages.create(**kwargs)
             except (RateLimitError, APITimeoutError) as exc:
                 last_exc = exc
-                self._sleep(attempt)
                 log.warning(
-                    "anthropic %s attempt %d retryable: %s",
+                    "anthropic %s attempt %d/%d retryable (%s): %s",
                     span,
                     attempt + 1,
+                    self.max_attempts,
+                    type(exc).__name__,
                     exc,
                 )
+                self._sleep(attempt)
             except APIError as exc:
                 # APIError covers 5xx in the SDK; retry on those, raise
                 # on 4xx (the SDK already split most cases by exception
@@ -235,20 +247,37 @@ class AnthropicClient:
                 status = getattr(exc, "status_code", None)
                 if status is not None and 500 <= status < 600:
                     last_exc = exc
-                    self._sleep(attempt)
                     log.warning(
-                        "anthropic %s attempt %d HTTP %d retryable: %s",
+                        "anthropic %s attempt %d/%d HTTP %d retryable: %s",
                         span,
                         attempt + 1,
+                        self.max_attempts,
                         status,
                         exc,
                     )
+                    self._sleep(attempt)
                     continue
-                # Non-retryable: propagate.
+                # Non-retryable (4xx other than 429). Log the body the
+                # API returned so the caller can see what went wrong
+                # (auth, schema, model unavailable, etc.) instead of
+                # just a class name.
+                log.error(
+                    "anthropic %s non-retryable (%s, status=%s): %s",
+                    span,
+                    type(exc).__name__,
+                    status,
+                    exc,
+                )
                 raise
         # Exhausted attempts. Surface the last exception verbatim so
         # the caller's traceback includes Anthropic's error envelope.
         assert last_exc is not None
+        log.error(
+            "anthropic %s exhausted %d attempts: %s",
+            span,
+            self.max_attempts,
+            last_exc,
+        )
         raise last_exc
 
     def _sleep(self, attempt: int) -> None:
