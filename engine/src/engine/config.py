@@ -95,12 +95,17 @@ class EngineSettings(BaseSettings):
         alias="RESEARCH_LLM_PROVIDER",
         description="Which provider serves the research.candidates call.",
     )
-    # Model used by the Anthropic provider. Sonnet 4.6 is the cost-
-    # quality sweet spot for structured research output + web_search.
-    # Override to claude-opus-4-7 if you want best-in-class reasoning
-    # at ~5x cost.
+    # Model used by the Anthropic provider. Haiku 4.5 is the
+    # cheapest model that still supports web_search — $1/$5 per
+    # Mtok vs Sonnet's $3/$15 — and for the structured JSON the
+    # research node needs, quality drop is small. A single Tier-1
+    # account ($5 deposit) burned out in 5-6 Sonnet calls during
+    # initial testing; Haiku gives you 3-4x more runs for the same
+    # money. Override to `claude-sonnet-4-6` (or
+    # `claude-opus-4-7` for best-in-class) once the pipeline is
+    # validated and you've moved to a higher tier.
     anthropic_research_model: str = Field(
-        default="claude-sonnet-4-6",
+        default="claude-haiku-4-5-20251001",
         alias="ANTHROPIC_RESEARCH_MODEL",
         description="Model ID for the Anthropic research call.",
     )

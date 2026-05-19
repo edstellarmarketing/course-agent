@@ -11,7 +11,8 @@ regardless.
 | Provider | When to use | Cost per run | Reference quality |
 |---|---|---|---|
 | `openrouter` *(default)* | Saving cents matters more than reference accuracy | ~$0.05–0.15 | Model-recalled URLs; Rule 7 throws away the bad ones |
-| `anthropic` | Grounded references matter more than cents | ~$0.20–0.60 | URLs the model actually opened during the call |
+| `anthropic` *(Haiku default)* | Grounded references matter more than cents | ~$0.10–0.25 | URLs the model actually opened during the call |
+| `anthropic` *(Sonnet override)* | Best reasoning + grounded refs | ~$0.30–0.80 | Same, with stronger candidate-quality reasoning |
 
 The cost gap is dominated by Anthropic's `web_search` tool charge
 ($10 per 1,000 searches). A typical research call issues 3-8 searches.
@@ -32,9 +33,12 @@ nano /opt/course-agent/engine/.env
 Append:
 
 ```
-ANTHROPIC_API_KEY=sk-ant-...                 # the new key
-RESEARCH_LLM_PROVIDER=anthropic              # opt in
-ANTHROPIC_RESEARCH_MODEL=claude-sonnet-4-6   # optional; this is the default
+ANTHROPIC_API_KEY=sk-ant-...                       # the new key
+RESEARCH_LLM_PROVIDER=anthropic                    # opt in
+# Optional. Default is haiku-4-5 — cheapest model that supports
+# web_search, $1/$5 per Mtok. Set explicitly to claude-sonnet-4-6
+# if you've moved past Tier 1 and want stronger reasoning.
+ANTHROPIC_RESEARCH_MODEL=claude-haiku-4-5-20251001
 ```
 
 Save (`Ctrl+X` → `Y` → `Enter`). The next cron firing picks them up
