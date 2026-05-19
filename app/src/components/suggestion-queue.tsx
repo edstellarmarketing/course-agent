@@ -4,9 +4,11 @@ import { useState, useTransition } from "react";
 
 import { NeedsRevisionModal } from "@/components/needs-revision-modal";
 import { RejectModal } from "@/components/reject-modal";
+import { SendEmailModal } from "@/components/send-email-modal";
 import { SuggestionCard } from "@/components/suggestion-card";
 import {
   approveSuggestion,
+  emailSuggestion,
   rejectSuggestion,
   requestRevision,
 } from "@/app/(app)/suggestions/actions";
@@ -31,12 +33,21 @@ interface SuggestionQueueProps {
 export function SuggestionQueue({ suggestions, tags }: SuggestionQueueProps) {
   const [rejecting, setRejecting] = useState<Suggestion | null>(null);
   const [reviewing, setReviewing] = useState<Suggestion | null>(null);
+  /** Card being emailed — opens the SendEmailModal when non-null. */
+  const [emailing, setEmailing] = useState<Suggestion | null>(null);
+  /** Toast shown after a successful send. Cleared by the next user action. */
+  const [emailToast, setEmailToast] = useState<string | null>(null);
+  /** Inline modal error (relay 500, bad email, etc.). */
+  const [emailError, setEmailError] = useState<string | null>(null);
   /** Suggestions the reviewer just acted on this session — hidden until revalidate replaces the list. */
   const [acted, setActed] = useState<Record<string, FeedbackDecision>>({});
   /** Banner shown above the queue if the most recent action failed (race, RLS, network). */
   const [error, setError] = useState<string | null>(null);
-  /** Disables every button while ANY action is in flight. Prevents double-clicks. */
+  /** Disables decision buttons while ANY decision is in flight. */
   const [pending, startTransition] = useTransition();
+  /** Email send happens in its own transition so a slow GAS round-trip
+   *  doesn't lock the Approve/Reject buttons on other cards. */
+  const [emailPending, startEmailTransition] = useTransition();
 
   const stageDecision = (id: string, decision: FeedbackDecision) => {
     setActed((prev) => ({ ...prev, [id]: decision }));
@@ -85,6 +96,27 @@ export function SuggestionQueue({ suggestions, tags }: SuggestionQueueProps) {
     });
   };
 
+  const handleEmailSuggestion = (
+    s: Suggestion,
+    payload: { to: string; note: string },
+  ) => {
+    setEmailError(null);
+    setEmailToast(null);
+    startEmailTransition(async () => {
+      const result = await emailSuggestion({
+        suggestionId: s.id,
+        to: payload.to,
+        note: payload.note,
+      });
+      if (result.ok) {
+        setEmailing(null);
+        setEmailToast(`Sent to ${result.to}.`);
+      } else {
+        setEmailError(result.error);
+      }
+    });
+  };
+
   const visible = suggestions.filter((s) => !(s.id in acted));
 
   return (
@@ -98,6 +130,28 @@ export function SuggestionQueue({ suggestions, tags }: SuggestionQueueProps) {
             Couldn&rsquo;t save decision
           </span>
           <div className="mt-1">{error}</div>
+        </div>
+      )}
+
+      {emailToast && (
+        <div
+          role="status"
+          className="mb-4 flex items-start justify-between gap-3 rounded-md border border-green-200 bg-green-soft px-4 py-3 text-sm text-green-800"
+        >
+          <div>
+            <span className="font-display text-[10px] font-semibold uppercase tracking-widest text-green-700">
+              Email sent
+            </span>
+            <div className="mt-1">{emailToast}</div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setEmailToast(null)}
+            aria-label="Dismiss"
+            className="rounded p-0.5 text-green-700 hover:bg-green-soft/60"
+          >
+            ✕
+          </button>
         </div>
       )}
 
@@ -115,6 +169,11 @@ export function SuggestionQueue({ suggestions, tags }: SuggestionQueueProps) {
                     onApprove={() => handleApprove(s)}
                     onReject={() => setRejecting(s)}
                     onNeedsRevision={() => setReviewing(s)}
+                    onSendEmail={() => {
+                      setEmailError(null);
+                      setEmailToast(null);
+                      setEmailing(s);
+                    }}
                   />
                 }
               />
@@ -143,6 +202,21 @@ export function SuggestionQueue({ suggestions, tags }: SuggestionQueueProps) {
           handleNeedsRevision(reviewing, note);
         }}
       />
+
+      <SendEmailModal
+        open={emailing != null}
+        onClose={() => {
+          setEmailing(null);
+          setEmailError(null);
+        }}
+        suggestionTitle={emailing?.title ?? ""}
+        pending={emailPending}
+        error={emailError}
+        onSubmit={(payload) => {
+          if (!emailing) return;
+          handleEmailSuggestion(emailing, payload);
+        }}
+      />
     </>
   );
 }
@@ -152,11 +226,13 @@ function CardActions({
   onApprove,
   onReject,
   onNeedsRevision,
+  onSendEmail,
 }: {
   disabled: boolean;
   onApprove: () => void;
   onReject: () => void;
   onNeedsRevision: () => void;
+  onSendEmail: () => void;
 }) {
   return (
     <>
@@ -183,6 +259,13 @@ function CardActions({
         className="rounded-md border border-red-300 bg-white px-3.5 py-2 text-sm font-medium text-red-700 transition-colors hover:border-red-500 hover:bg-red-soft disabled:cursor-not-allowed disabled:opacity-50"
       >
         Reject
+      </button>
+      <button
+        type="button"
+        onClick={onSendEmail}
+        className="rounded-md border border-navy-soft bg-white px-3.5 py-2 text-sm font-medium text-navy-deep transition-colors hover:border-navy hover:bg-navy-soft/40"
+      >
+        Send by email
       </button>
     </>
   );
