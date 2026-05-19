@@ -67,12 +67,9 @@ def _build_user_prompt(
     serper_hits: list[dict[str, str]],
     max_candidates: int,
     existing_categories: list[str] | None = None,
+    *,
+    use_native_web_search: bool = False,
 ) -> str:
-    hits_block = "\n".join(
-        f"- {h['title']} — {h['link']}\n  {h['snippet']}"
-        for h in serper_hits
-    ) or "(no search results returned)"
-
     if existing_categories:
         cats_block = "\n".join(f"  - {c}" for c in sorted(existing_categories))
         cats_section = (
@@ -84,12 +81,40 @@ def _build_user_prompt(
     else:
         cats_section = ""
 
+    # When the caller has Claude's native web_search tool available
+    # (RESEARCH_LLM_PROVIDER=anthropic), skip the Serper-hits block
+    # entirely — the model should do its own targeted searches, not
+    # anchor on a 10-row Google snapshot. Otherwise embed the Serper
+    # hits as evidence (the original OpenRouter behaviour).
+    if use_native_web_search:
+        evidence_section = (
+            "Use the `web_search` tool to find current evidence for your "
+            "candidates before writing them up:\n"
+            "  - At least 3 searches per candidate covering: existing "
+            "provider catalogues (Coursera/Pluralsight/LinkedIn/SANS/etc), "
+            "vendor / certification body sites, and pricing benchmarks.\n"
+            "  - Only cite URLs that you actually opened during the call. "
+            "Never include a URL you haven't read — Rule 7 throws unread "
+            "URLs out anyway, and you'll waste tokens.\n"
+            "  - Quote one sentence verbatim from each reference's page "
+            "into the `quote` field; Rule 7 verifies that exact substring "
+            "appears on the linked page.\n\n"
+        )
+    else:
+        hits_block = "\n".join(
+            f"- {h['title']} — {h['link']}\n  {h['snippet']}"
+            for h in serper_hits
+        ) or "(no search results returned)"
+        evidence_section = (
+            "Recent search results to use as market evidence (cite plausibly in "
+            "price_basis and references when relevant; you may also propose ideas "
+            f"the search didn't surface):\n\n{hits_block}\n\n"
+        )
+
     return (
         f"Category to research: {category}\n\n"
         f"{cats_section}"
-        f"Recent search results to use as market evidence (cite plausibly in price_basis "
-        f"and references when relevant; you may also propose ideas the search didn't surface):\n\n"
-        f"{hits_block}\n\n"
+        f"{evidence_section}"
         f"Return ONLY a JSON array of at most {max_candidates} candidate objects. "
         "Every candidate must satisfy all ten rules from the system prompt. "
         "No markdown fences, no commentary — just the JSON array."
@@ -167,9 +192,31 @@ def research_one_category(
     callers (CLI's `agent research` subcommand for example) don't
     need to thread the DB-resolved prompt through. The graph's
     research node always passes the resolved active/candidate text.
+
+    When ``RESEARCH_LLM_PROVIDER=anthropic`` the function skips the
+    Serper round-trip entirely and asks Claude to use its native
+    ``web_search`` tool — no point paying for Serper and then
+    feeding a stale snapshot into a prompt that's about to do
+    fresh searches anyway.
     """
-    hits_obj = serper_search(_build_search_query(category), ledger=ledger, num=10)
-    hits = [{"title": h.title, "link": h.link, "snippet": h.snippet} for h in hits_obj]
+    cfg = settings()
+    use_anthropic = cfg.research_llm_provider == "anthropic"
+
+    if use_anthropic:
+        hits: list[dict[str, str]] = []
+        log.info(
+            "research category=%r serper skipped (provider=anthropic; "
+            "model will use native web_search)",
+            category,
+        )
+    else:
+        hits_obj = serper_search(
+            _build_search_query(category), ledger=ledger, num=10
+        )
+        hits = [
+            {"title": h.title, "link": h.link, "snippet": h.snippet}
+            for h in hits_obj
+        ]
 
     # Phase 8 Step 3: few-shot signals from the category's feedback
     # history. Empty block → first message stack stays Phase-6-shape.
@@ -194,7 +241,11 @@ def research_one_category(
         messages.append({"role": "system", "content": few_shot.as_prompt_text()})
 
     user_prompt = _build_user_prompt(
-        category, hits, max_candidates, existing_categories=existing_categories
+        category,
+        hits,
+        max_candidates,
+        existing_categories=existing_categories,
+        use_native_web_search=use_anthropic,
     )
     messages.append({"role": "user", "content": user_prompt})
 
@@ -206,15 +257,14 @@ def research_one_category(
     # bound for the default research model (deepseek-chat-v3.1) and
     # most OpenRouter routed alternatives.
     #
-    # Provider toggle: when RESEARCH_LLM_PROVIDER=anthropic the call
-    # goes direct to Anthropic with web_search enabled — grounded
-    # references at a noticeable cost premium. Every OTHER LLM call
-    # in this run (rule_07 ref-verify, rule_10 cert-judge, etc.)
-    # stays on OpenRouter regardless; only research benefits enough
-    # from web search to justify the upgrade.
-    cfg = settings()
+    # Provider toggle (cfg already read above). When use_anthropic
+    # is True the call goes direct to Anthropic with web_search
+    # enabled — grounded references at a noticeable cost premium.
+    # Every OTHER LLM call in this run (rule_07 ref-verify, rule_10
+    # cert-judge, etc.) stays on OpenRouter regardless; only
+    # research benefits enough from web search to justify it.
     research_client: AnthropicClient | OpenRouterClient
-    if cfg.research_llm_provider == "anthropic":
+    if use_anthropic:
         research_client = AnthropicClient(
             default_model=cfg.anthropic_research_model,
             ledger=ledger,
