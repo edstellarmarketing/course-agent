@@ -98,7 +98,7 @@ export function SuggestionQueue({ suggestions, tags }: SuggestionQueueProps) {
 
   const handleEmailSuggestion = (
     s: Suggestion,
-    payload: { to: string; note: string },
+    payload: { to: string[]; note: string },
   ) => {
     setEmailError(null);
     setEmailToast(null);
@@ -110,7 +110,18 @@ export function SuggestionQueue({ suggestions, tags }: SuggestionQueueProps) {
       });
       if (result.ok) {
         setEmailing(null);
-        setEmailToast(`Sent to ${result.to}.`);
+        const sentList = result.sentTo.join(", ");
+        const failedNote =
+          result.failed.length > 0
+            ? ` (${result.failed.length} failed: ${result.failed
+                .map((f) => `${f.to}: ${f.error}`)
+                .join("; ")})`
+            : "";
+        setEmailToast(
+          `Sent to ${result.sentTo.length} recipient${
+            result.sentTo.length === 1 ? "" : "s"
+          }: ${sentList}.${failedNote}`,
+        );
       } else {
         setEmailError(result.error);
       }

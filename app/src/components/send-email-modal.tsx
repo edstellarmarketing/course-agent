@@ -13,11 +13,21 @@ interface SendEmailModalProps {
   pending?: boolean;
   /** External error from the action; clears when the user edits the form. */
   error?: string | null;
-  onSubmit: (payload: { to: string; note: string }) => void;
+  onSubmit: (payload: { to: string[]; note: string }) => void;
 }
 
 /** Loose RFC-5322-ish; matches the server-side check in actions.ts. */
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/**
+ * Fixed quick-pick recipients. Edit this list to add/remove people;
+ * the action also accepts ad-hoc addresses via the "Other" field.
+ */
+const PRESET_RECIPIENTS = [
+  "vijay@edstellar.com",
+  "venkat.r@edstellar.com",
+  "surya.l@edstellar.com",
+];
 
 /**
  * Pre-filled checklist for the recipient. Editable — clear or rewrite
@@ -45,7 +55,11 @@ export function SendEmailModal({
   onSubmit,
 }: SendEmailModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
-  const [to, setTo] = useState("");
+  // Preset checkboxes — every preset starts UNchecked so each share is
+  // an intentional click, not an accidental blast. Toggle by clicking.
+  const [selected, setSelected] = useState<Set<string>>(() => new Set());
+  // Optional "also send to…" field. Free-form, comma- or space-separated.
+  const [otherRaw, setOtherRaw] = useState("");
   const [note, setNote] = useState(DEFAULT_NOTE);
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const errorId = useId();
@@ -61,7 +75,8 @@ export function SendEmailModal({
   }, [open]);
 
   const resetState = () => {
-    setTo("");
+    setSelected(new Set());
+    setOtherRaw("");
     setNote(DEFAULT_NOTE);
     setSubmitAttempted(false);
   };
@@ -72,14 +87,47 @@ export function SendEmailModal({
     onClose();
   };
 
-  const trimmedEmail = to.trim();
-  const isValid = EMAIL_RE.test(trimmedEmail);
+  // Parse "Other" — split on comma OR whitespace, drop empties.
+  const otherList = otherRaw
+    .split(/[\s,]+/)
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+
+  // Deduped, ordered: presets first, then other addresses.
+  const allRecipients: string[] = [];
+  const seen = new Set<string>();
+  for (const e of selected) {
+    if (!seen.has(e)) {
+      seen.add(e);
+      allRecipients.push(e);
+    }
+  }
+  for (const e of otherList) {
+    const low = e.toLowerCase();
+    if (!seen.has(low)) {
+      seen.add(low);
+      allRecipients.push(low);
+    }
+  }
+
+  const otherInvalid = otherList.filter((e) => !EMAIL_RE.test(e));
+  const isValid =
+    allRecipients.length > 0 && otherInvalid.length === 0;
+
+  function togglePreset(email: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(email)) next.delete(email);
+      else next.add(email);
+      return next;
+    });
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitAttempted(true);
     if (!isValid || pending) return;
-    onSubmit({ to: trimmedEmail.toLowerCase(), note });
+    onSubmit({ to: allRecipients, note });
   };
 
   return (
@@ -108,27 +156,59 @@ export function SendEmailModal({
 
         <div className="space-y-4 px-6 py-5">
           <div>
-            <label
-              htmlFor="email-to"
+            <div
               className="block font-display text-[10px] font-semibold uppercase tracking-widest text-gray-500"
+              id="recipients-label"
             >
               Send to <span className="text-red-600">*</span>
+            </div>
+            <ul
+              role="group"
+              aria-labelledby="recipients-label"
+              aria-describedby={submitAttempted && !isValid ? errorId : undefined}
+              className="mt-1.5 space-y-1.5"
+            >
+              {PRESET_RECIPIENTS.map((email) => {
+                const isChecked = selected.has(email);
+                return (
+                  <li key={email}>
+                    <label className="flex cursor-pointer items-center gap-2 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-800 transition-colors hover:border-navy/40 hover:bg-navy-soft/20">
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => togglePreset(email)}
+                        className="h-4 w-4 cursor-pointer rounded border-gray-300 text-navy focus:ring-navy"
+                      />
+                      <span className="font-mono text-[13px]">{email}</span>
+                    </label>
+                  </li>
+                );
+              })}
+            </ul>
+
+            <label
+              htmlFor="email-other"
+              className="mt-3 block font-display text-[10px] font-semibold uppercase tracking-widest text-gray-500"
+            >
+              Other recipients <span className="text-gray-400">(optional, comma-separated)</span>
             </label>
             <input
-              id="email-to"
-              type="email"
-              required
-              autoFocus
-              value={to}
-              onChange={(e) => setTo(e.target.value)}
-              placeholder="colleague@edstellar.com"
+              id="email-other"
+              type="text"
+              value={otherRaw}
+              onChange={(e) => setOtherRaw(e.target.value)}
+              placeholder="someone@edstellar.com, other@example.com"
               autoComplete="off"
               spellCheck={false}
               className="mt-1.5 w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-800 placeholder:text-gray-400 focus:border-navy focus:outline-none focus:ring-2 focus:ring-navy/15"
-              aria-describedby={
-                submitAttempted && !isValid ? errorId : undefined
-              }
             />
+            {allRecipients.length > 0 && (
+              <p className="mt-2 text-[11px] text-gray-500">
+                Will send to <span className="font-mono">{allRecipients.length}</span>{" "}
+                recipient{allRecipients.length === 1 ? "" : "s"}:{" "}
+                <span className="font-mono">{allRecipients.join(", ")}</span>
+              </p>
+            )}
           </div>
 
           <div>
@@ -158,7 +238,9 @@ export function SendEmailModal({
             role="alert"
             className="mx-6 -mt-1 mb-3 rounded-md border border-red-200 bg-red-soft px-3 py-2 text-xs text-red-700"
           >
-            Enter a valid email address (e.g. name@example.com).
+            {otherInvalid.length > 0
+              ? `Invalid email${otherInvalid.length === 1 ? "" : "s"}: ${otherInvalid.join(", ")}`
+              : "Pick at least one recipient (tick a preset above, or add a custom address)."}
           </div>
         )}
 

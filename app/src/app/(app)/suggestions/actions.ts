@@ -323,24 +323,51 @@ function deriveAppUrl(): string {
 }
 
 export type SendSuggestionResult =
-  | { ok: true; to: string }
+  | {
+      ok: true;
+      sentTo: string[];
+      failed: { to: string; error: string }[];
+    }
   | { ok: false; error: string };
 
 /**
  * Share a single suggestion by email. Renders an HTML body from the
  * suggestion's columns and POSTs to the existing GAS relay (same
- * pipeline as the digest). The reviewer must be signed in; the email
- * recipient is whoever the operator types into the modal — no admin
- * gate, but every send is audit-logged with both addresses.
+ * pipeline as the digest). One POST per recipient — GAS only accepts
+ * a single `to` per call; this matches how send-digest.ts fans out.
+ *
+ * Returns `ok: true` even if some recipients failed; the caller
+ * inspects `failed[]` to surface per-address errors. Hard `ok: false`
+ * is only for "everyone failed" or "request shape is invalid".
  */
 export async function emailSuggestion(args: {
   suggestionId: string;
-  to: string;
+  to: string[];
   note: string;
 }): Promise<SendSuggestionResult> {
-  const to = args.to.trim().toLowerCase();
-  if (!EMAIL_RE.test(to)) {
-    return { ok: false, error: "That doesn't look like a valid email." };
+  // De-dupe, lowercase, validate each recipient.
+  const seen = new Set<string>();
+  const recipients: string[] = [];
+  const invalid: string[] = [];
+  for (const raw of args.to) {
+    const v = raw.trim().toLowerCase();
+    if (!v) continue;
+    if (seen.has(v)) continue;
+    seen.add(v);
+    if (!EMAIL_RE.test(v)) {
+      invalid.push(v);
+      continue;
+    }
+    recipients.push(v);
+  }
+  if (recipients.length === 0) {
+    return {
+      ok: false,
+      error:
+        invalid.length > 0
+          ? `Invalid email${invalid.length === 1 ? "" : "s"}: ${invalid.join(", ")}`
+          : "Pick at least one recipient.",
+    };
   }
 
   const e = env();
@@ -387,38 +414,56 @@ export async function emailSuggestion(args: {
     appUrl: deriveAppUrl(),
   });
 
-  let relayResp: Response;
-  try {
-    relayResp = await fetch(e.GAS_EMAIL_WEBHOOK_URL, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
+  // One POST per recipient — matches send-digest.ts fan-out.
+  const sentTo: string[] = [];
+  const failed: { to: string; error: string }[] = [];
+  for (const to of recipients) {
+    let relayResp: Response;
+    try {
+      relayResp = await fetch(e.GAS_EMAIL_WEBHOOK_URL, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          to,
+          subject,
+          html,
+          secret: e.GAS_EMAIL_SHARED_SECRET,
+          name: "Edstellar Course Agent",
+        }),
+      });
+    } catch (err) {
+      failed.push({
         to,
-        subject,
-        html,
-        secret: e.GAS_EMAIL_SHARED_SECRET,
-        name: "Edstellar Course Agent",
-      }),
-    });
-  } catch (err) {
-    return {
-      ok: false,
-      error: `GAS relay unreachable: ${
-        err instanceof Error ? err.message : String(err)
-      }`,
-    };
+        error: `unreachable: ${err instanceof Error ? err.message : String(err)}`,
+      });
+      continue;
+    }
+
+    const body = (await relayResp.json().catch(() => null)) as
+      | { ok?: boolean; success?: boolean; error?: string }
+      | null;
+    const okRelay =
+      relayResp.ok && (body?.ok === true || body?.success === true);
+    if (okRelay) {
+      sentTo.push(to);
+    } else {
+      failed.push({
+        to,
+        error: body?.error ?? `HTTP ${relayResp.status}`,
+      });
+    }
   }
 
-  // GAS returns 200 with either {ok:true} or {error:"..."}; treat both.
-  const body = (await relayResp.json().catch(() => null)) as
-    | { ok?: boolean; success?: boolean; error?: string }
-    | null;
-  const ok =
-    relayResp.ok && (body?.ok === true || body?.success === true);
-  if (!ok) {
+  // Include any pre-validated invalid addresses in the failed list so
+  // the caller sees one consolidated picture in the UI.
+  for (const v of invalid) {
+    failed.push({ to: v, error: "invalid email" });
+  }
+
+  if (sentTo.length === 0) {
     return {
       ok: false,
-      error: body?.error ?? `GAS relay HTTP ${relayResp.status}`,
+      error: `Every recipient failed (${failed.map((f) => `${f.to}: ${f.error}`).join("; ")})`,
     };
   }
 
@@ -426,8 +471,12 @@ export async function emailSuggestion(args: {
     action: "suggestion.email_sent",
     targetType: "suggestions",
     targetId: args.suggestionId,
-    payload: { to, has_note: args.note.trim().length > 0 },
+    payload: {
+      sent_to: sentTo,
+      failed: failed.length > 0 ? failed : undefined,
+      has_note: args.note.trim().length > 0,
+    },
   });
 
-  return { ok: true, to };
+  return { ok: true, sentTo, failed };
 }
