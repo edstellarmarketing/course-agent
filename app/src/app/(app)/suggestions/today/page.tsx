@@ -5,7 +5,9 @@ import { getCurrentReviewer } from "@/lib/auth/current-user";
 import { findRelatedCategories } from "@/lib/category-similarity";
 import { createSessionClient } from "@/lib/supabase/server-with-session";
 import type {
+  ClosestCourseMatch,
   ContentOutlineModule,
+  Course,
   LabRequirements,
   PackageFit,
   RejectionTag,
@@ -65,7 +67,10 @@ interface RejectionTaxonomyRow {
   rare: boolean | null;
 }
 
-function rowToSuggestion(row: SuggestionRow): Suggestion {
+function rowToSuggestion(
+  row: SuggestionRow,
+  closest: ClosestCourseMatch | null,
+): Suggestion {
   return {
     id: row.id,
     runId: row.run_id,
@@ -87,9 +92,24 @@ function rowToSuggestion(row: SuggestionRow): Suggestion {
     references: row.references ?? [],
     status: row.status,
     createdAt: row.created_at,
-    // `closestExistingCourse` is hydrated by Phase 6's cosine probe.
-    closestExistingCourse: null,
+    closestExistingCourse: closest,
   };
+}
+
+/**
+ * Shape returned by `course-agent.closest_courses_for_suggestions`.
+ * Columns are flattened (no nested object) — RPC return tables can't
+ * contain Postgres composite types portably.
+ */
+interface ClosestRpcRow {
+  suggestion_id: string;
+  course_id: string;
+  course_num: number | null;
+  course_name: string;
+  course_category: string;
+  course_subcategory: string | null;
+  course_link: string | null;
+  similarity: number;
 }
 
 export default async function SuggestionsTodayPage() {
@@ -163,7 +183,45 @@ export default async function SuggestionsTodayPage() {
   }
 
   const queue = (queueResult.data ?? []) as SuggestionRow[];
-  const pending: Suggestion[] = queue.map(rowToSuggestion);
+
+  // ── Closest existing course (cosine via pgvector) ───────────────
+  // One RPC call gets the top-1 course for every suggestion in the
+  // queue. Suggestions whose embedding is NULL (older runs) or
+  // catalogues with no embedded courses just won't have an entry —
+  // the card falls back to "No close match in the catalogue".
+  const closestMap = new Map<string, ClosestCourseMatch>();
+  if (queue.length > 0) {
+    const { data: closestData, error: closestErr } = await supabase.rpc(
+      "closest_courses_for_suggestions",
+      { suggestion_ids: queue.map((r) => r.id) },
+    );
+    if (closestErr) {
+      console.error(
+        "[suggestions/today] closest_courses_for_suggestions failed:",
+        closestErr,
+      );
+    }
+    for (const r of (closestData ?? []) as ClosestRpcRow[]) {
+      const course: Course = {
+        id: r.course_id,
+        num: r.course_num ?? 0,
+        name: r.course_name,
+        category: r.course_category,
+        subcategory: r.course_subcategory,
+        link: r.course_link,
+        // Card UI ignores these timestamps; values present only to
+        // satisfy the Course type.
+        lastSeenAt: "",
+        createdAt: "",
+        updatedAt: "",
+      };
+      closestMap.set(r.suggestion_id, { course, similarity: r.similarity });
+    }
+  }
+
+  const pending: Suggestion[] = queue.map((row) =>
+    rowToSuggestion(row, closestMap.get(row.id) ?? null),
+  );
 
   // ── Category-fit context ────────────────────────────────────────
   // For every category that appears in the pending queue, look up

@@ -10,6 +10,8 @@ import {
 import { findRelatedCategories } from "@/lib/category-similarity";
 import { createSessionClient } from "@/lib/supabase/server-with-session";
 import type {
+  ClosestCourseMatch,
+  Course,
   FeedbackDecision,
   RejectionTag,
   RejectionTagKey,
@@ -69,7 +71,10 @@ interface RejectionTaxonomyRow {
   rare: boolean | null;
 }
 
-function rowToSuggestion(row: SuggestionRow): Suggestion {
+function rowToSuggestion(
+  row: SuggestionRow,
+  closest: ClosestCourseMatch | null,
+): Suggestion {
   return {
     id: row.id,
     runId: row.run_id,
@@ -91,7 +96,7 @@ function rowToSuggestion(row: SuggestionRow): Suggestion {
     references: row.references ?? [],
     status: row.status,
     createdAt: row.created_at,
-    closestExistingCourse: null,
+    closestExistingCourse: closest,
   };
 }
 
@@ -151,7 +156,48 @@ export default async function SuggestionDetailPage({
   const suggestionRow = suggestionResult.data as SuggestionRow | null;
   if (!suggestionRow) notFound();
 
-  const suggestion = rowToSuggestion(suggestionRow);
+  // Closest existing course via pgvector cosine (RPC declared in
+  // migration 0015). Returns no row if the suggestion's embedding is
+  // NULL or every course in the catalogue lacks an embedding — card
+  // then falls back to "No close match in the catalogue".
+  let closest: ClosestCourseMatch | null = null;
+  const { data: closestData, error: closestErr } = await supabase.rpc(
+    "closest_courses_for_suggestions",
+    { suggestion_ids: [suggestionRow.id] },
+  );
+  if (closestErr) {
+    console.error(
+      "[suggestions/:id] closest_courses_for_suggestions failed:",
+      closestErr,
+    );
+  }
+  const closestRow = (closestData ?? [])[0] as
+    | {
+        course_id: string;
+        course_num: number | null;
+        course_name: string;
+        course_category: string;
+        course_subcategory: string | null;
+        course_link: string | null;
+        similarity: number;
+      }
+    | undefined;
+  if (closestRow) {
+    const course: Course = {
+      id: closestRow.course_id,
+      num: closestRow.course_num ?? 0,
+      name: closestRow.course_name,
+      category: closestRow.course_category,
+      subcategory: closestRow.course_subcategory,
+      link: closestRow.course_link,
+      lastSeenAt: "",
+      createdAt: "",
+      updatedAt: "",
+    };
+    closest = { course, similarity: closestRow.similarity };
+  }
+
+  const suggestion = rowToSuggestion(suggestionRow, closest);
   const trail = (feedbackResult.data ?? []) as FeedbackRow[];
   const taxonomy = (taxonomyResult.data ?? []) as RejectionTaxonomyRow[];
   const tagLabelByKey = new Map(taxonomy.map((t) => [t.key, t.label]));
