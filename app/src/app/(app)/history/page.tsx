@@ -1,6 +1,10 @@
 import Link from "next/link";
 
 import { PageHeader } from "@/components/page-header";
+import {
+  SuggestionsExportTable,
+  type SuggestionExportRow,
+} from "@/components/suggestions-export-table";
 import { createSessionClient } from "@/lib/supabase/server-with-session";
 import type { FeedbackDecision } from "@/lib/types";
 
@@ -32,19 +36,6 @@ interface HistoryPageProps {
     category?: string;
     status?: SuggestionStatus | "all";
   }>;
-}
-
-const MONTHS = [
-  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
-];
-
-function fmtDate(iso: string): string {
-  const d = new Date(iso);
-  const day = String(d.getUTCDate()).padStart(2, "0");
-  const month = MONTHS[d.getUTCMonth()];
-  const year = d.getUTCFullYear();
-  return `${day}-${month}-${year}`;
 }
 
 export default async function HistoryPage({ searchParams }: HistoryPageProps) {
@@ -122,7 +113,9 @@ async function SuggestionsView({
 
   let query = supabase
     .from("suggestions")
-    .select("id,title,category,status,created_at,run_id")
+    .select(
+      "id,run_id,title,rationale,category,proposed_subcategory,target_audience,duration_days,duration_hours_min,duration_hours_max,delivery_format,suggested_price_usd,price_basis,references,content_outline,package_fit,lab_requirements,edstellar_pitch,status,created_at",
+    )
     .order("created_at", { ascending: false })
     .limit(500);
 
@@ -155,14 +148,7 @@ async function SuggestionsView({
     console.error("[history/suggestions] query failed:", rowsResult.error);
   }
 
-  const rows = (rowsResult.data ?? []) as {
-    id: string;
-    title: string | null;
-    category: string | null;
-    status: SuggestionStatus;
-    created_at: string;
-    run_id: string;
-  }[];
+  const rows = (rowsResult.data ?? []) as SuggestionExportRow[];
   const categories = (categoriesResult.data ?? []) as { name: string }[];
 
   return (
@@ -265,82 +251,8 @@ async function SuggestionsView({
         )}
       </form>
 
-      <div className="rounded-lg border border-gray-100 bg-white">
-        <header className="flex items-center justify-between border-b border-gray-100 px-6 py-4 text-sm text-gray-500">
-          <span>
-            <span className="font-display text-base font-semibold text-navy-deep">
-              {rows.length}
-            </span>{" "}
-            suggestion{rows.length === 1 ? "" : "s"}
-            {rows.length === 500 && (
-              <span className="ml-2 text-[11px] text-gray-400">
-                (showing latest 500 — narrow the date range to see older)
-              </span>
-            )}
-          </span>
-        </header>
-        {rows.length === 0 ? (
-          <p className="px-6 py-12 text-center text-sm text-gray-500">
-            No suggestions match these filters.
-          </p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-off-white text-left text-[10px] uppercase tracking-widest text-gray-500">
-                <tr>
-                  <th className="px-6 py-3 font-display font-semibold">Title</th>
-                  <th className="px-6 py-3 font-display font-semibold">Category</th>
-                  <th className="px-6 py-3 font-display font-semibold">Status</th>
-                  <th className="px-6 py-3 font-display font-semibold whitespace-nowrap">
-                    Suggested date
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {rows.map((row) => (
-                  <tr key={row.id} className="hover:bg-off-white">
-                    <td className="px-6 py-3">
-                      <Link
-                        href={`/suggestions/${row.id}`}
-                        className="font-medium text-navy-deep hover:text-navy"
-                      >
-                        {row.title ?? <em className="text-gray-400">untitled</em>}
-                      </Link>
-                    </td>
-                    <td className="px-6 py-3 text-gray-700">
-                      {row.category ?? "—"}
-                    </td>
-                    <td className="px-6 py-3">
-                      <StatusPill status={row.status} />
-                    </td>
-                    <td className="px-6 py-3 font-mono text-xs text-gray-600 whitespace-nowrap">
-                      {fmtDate(row.created_at)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+      <SuggestionsExportTable rows={rows} />
     </>
-  );
-}
-
-function StatusPill({ status }: { status: SuggestionStatus }) {
-  const map = {
-    pending_review: "bg-amber-soft text-amber-700",
-    approved: "bg-green-soft text-green-700",
-    rejected: "bg-red-soft text-red-700",
-    needs_revision: "bg-navy-soft text-navy-deep",
-  } as const;
-  const label = status.replace("_", " ");
-  return (
-    <span
-      className={`inline-flex rounded-full px-2 py-0.5 font-display text-[10px] font-semibold uppercase tracking-wider ${map[status]}`}
-    >
-      {label}
-    </span>
   );
 }
 
