@@ -595,16 +595,23 @@ function ValuePanel({
         </table>
       </div>
 
-      {/* Section 3: agent recommendation + rationale */}
-      <div className="mt-3 rounded-md border border-orange/30 bg-orange/5 p-3 text-sm leading-relaxed text-gray-700">
-        <span className="font-display text-[10px] font-semibold uppercase tracking-widest text-orange">
-          ★ Agent recommends ·{" "}
-        </span>
-        <span className="font-mono text-[11px] font-semibold text-navy-deep">
-          {packageFit.primaryPackage}
-        </span>{" "}
-        — {packageFit.packageRationale}
-      </div>
+      {/* Section 3: agent recommendation + rationale.
+          Hidden when the LLM didn't populate the fields — older
+          suggestions sometimes have `package_fit` set as an object
+          with empty primaryPackage/packageRationale. Without this
+          guard, the card renders "★ Agent recommends ·  — " which
+          looks broken. */}
+      {packageFit.primaryPackage && packageFit.packageRationale && (
+        <div className="mt-3 rounded-md border border-orange/30 bg-orange/5 p-3 text-sm leading-relaxed text-gray-700">
+          <span className="font-display text-[10px] font-semibold uppercase tracking-widest text-orange">
+            ★ Agent recommends ·{" "}
+          </span>
+          <span className="font-mono text-[11px] font-semibold text-navy-deep">
+            {packageFit.primaryPackage}
+          </span>{" "}
+          — {packageFit.packageRationale}
+        </div>
+      )}
     </section>
   );
 }
