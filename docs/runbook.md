@@ -17,6 +17,7 @@ built. This runbook describes how to keep it running.
 - [Add a new rejection tag](#add-a-new-rejection-tag)
 - [Update the Rule 10 certification blocklist](#update-the-rule-10-certification-blocklist)
 - [Add a digest recipient](#add-a-digest-recipient)
+- [Bulk-upload courses](#bulk-upload-courses)
 - [Assign a suggestion to a specific reviewer](#assign-a-suggestion-to-a-specific-reviewer)
 - [Restore from backup (drill or real)](#restore-from-backup-drill-or-real)
 - [Alert response](#alert-response)
@@ -258,6 +259,80 @@ RLS only admins (`is_admin()`) can read/write this table. If you
 get a 0-row response, your `app_metadata.course_agent_role` isn't
 `admin` — run the SQL with the service-role connection or have an
 admin do it.
+
+---
+
+## Bulk-upload courses
+
+When Edstellar adds courses through a non-agent channel (CMS edit,
+partnership import, manual catalogue work), the agent's view of
+`course-agent.courses` drifts out of sync with the production
+website. `gap_analyze` then targets categories that are already
+well-supplied. Bulk-upload from `/inventory` keeps the two in sync.
+
+Admin role only — the **Upload courses** button is hidden from
+reviewer accounts and the server action rejects non-admin callers.
+
+### Walkthrough
+
+1. `/inventory` → top admin strip → **Upload courses**.
+2. (Optional) **Download sample CSV** for the column shape.
+3. Drop a CSV with at least `name` + `category` columns. `num`,
+   `subcategory`, `link` are optional but help dedup and the UI.
+4. Preview shows the first 5 rows with per-row validation. Fix any
+   row marked red in your source file and re-upload — bad rows are
+   skipped, the rest still go through.
+5. **Process upload** runs the reconciliation server action. Result
+   panel reports new courses, auto-created categories, duplicates
+   skipped, and any conflicts.
+
+### Duplicate logic
+
+For each CSV row:
+
+1. **`num` match** — if the CSV row's `num` already exists in
+   `courses`, skip. If the names differ, also report a conflict so
+   you can investigate manually (we never overwrite).
+2. **`name + category` exact match** — only when `num` is absent on
+   the CSV row. Case-sensitive.
+3. **Else** — insert.
+
+### Embedding lag
+
+New rows are inserted with `embedding = NULL`. Until embeddings are
+backfilled, Rule 2 (dedup) and Rule 9 (demand) won't see these
+courses — the next agent run could propose a near-duplicate. Run:
+
+```bash
+cd /opt/course-agent/engine
+uv run embed_courses
+```
+
+…on the Coolify VPS, or set up the embed job there alongside the
+existing daily cron. ~1s per row, idempotent.
+
+### Conflicts
+
+A conflict is "CSV row says `num=2001` is `Foo`, but DB row with
+`num=2001` is `Bar`." The bulk action **never overwrites** — it
+skips and reports. Investigate manually: usually one side has stale
+data, occasionally a `num` was reassigned.
+
+### Audit trail
+
+Each upload is logged once as `courses.bulk_upload` with the
+summary payload (new_courses, new_categories, skipped_duplicates,
+conflicts, total_rows). Each auto-created category is also logged
+as `category.upsert` with `source: "bulk_upload"`. Both show up on
+`/history` → Decisions tab when filtered by action.
+
+### Limits
+
+| Limit | Value | Why |
+|---|---|---|
+| File size | 5 MB | ~50K rows; Edstellar has < 2K courses today, plenty of headroom. |
+| Format | CSV (UTF-8, header row) | No `.xlsx` parser bundled — Save As CSV from Excel. |
+| Mutation | Insert-only | This action never updates or deletes. SQL for those. |
 
 ---
 
