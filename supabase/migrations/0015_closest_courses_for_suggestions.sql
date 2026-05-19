@@ -26,7 +26,11 @@ returns table (
 language sql
 stable
 security invoker
-set search_path = ''
+-- pgvector's `<=>` cosine operator lives in `extensions`; the empty
+-- search_path elsewhere in the codebase hides it. We still schema-
+-- qualify every table reference inside the body so this opens up
+-- only the operator namespace, not random tables.
+set search_path = 'extensions'
 as $$
   select
     s.id as suggestion_id,
