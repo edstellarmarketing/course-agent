@@ -20,6 +20,14 @@ interface SendEmailModalProps {
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /**
+ * Pre-filled checklist for the recipient. Editable — clear or rewrite
+ * the textarea as needed. Kept here (not on the server) so admins can
+ * tweak it later by editing one constant.
+ */
+const DEFAULT_NOTE =
+  "Research this course name in google, check for existing course conflicts and see if we can create any new category for this course and also check the tools mentioned in the labs can be created as courses or not through google search";
+
+/**
  * Recipient prompt for sharing a single suggestion by email.
  *
  * No structured fields — the operator types one email + an optional
@@ -38,7 +46,7 @@ export function SendEmailModal({
 }: SendEmailModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [to, setTo] = useState("");
-  const [note, setNote] = useState("");
+  const [note, setNote] = useState(DEFAULT_NOTE);
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const errorId = useId();
 
@@ -54,7 +62,7 @@ export function SendEmailModal({
 
   const resetState = () => {
     setTo("");
-    setNote("");
+    setNote(DEFAULT_NOTE);
     setSubmitAttempted(false);
   };
 
