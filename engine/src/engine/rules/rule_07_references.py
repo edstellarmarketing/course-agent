@@ -185,13 +185,24 @@ def check(candidate: RawCandidate, ctx) -> "RuleResult":  # noqa: ANN001
         # Phase 9: quote verification when we successfully fetched
         # the page. When the fetch failed (403, timeout) we can't
         # disprove the quote so we leave it.
-        if ref.quote and page_text:
-            if not _verify_quote(ref.quote, page_text):
-                ref.quote = None
-                unverified_quotes += 1
-                log.info(
-                    "rule_07 unverify-quote %s (not on page)", ref.url
-                )
+        #
+        # Observability: stamp quote_status on every surviving ref so
+        # we can query the verify-rate over time without changing
+        # rule-engine behavior. See docs/runbook.md "Quote verification
+        # rate" for the query.
+        if not page_text:
+            ref.quote_status = "page_unfetched"
+        elif not ref.quote:
+            ref.quote_status = "absent"
+        elif _verify_quote(ref.quote, page_text):
+            ref.quote_status = "verified"
+        else:
+            ref.quote = None
+            unverified_quotes += 1
+            ref.quote_status = "unverified"
+            log.info(
+                "rule_07 unverify-quote %s (not on page)", ref.url
+            )
 
         # LLM judgement on relevance — only when we have readable
         # content. JS-rendered or 403 → unsure (don't kill candidate).
